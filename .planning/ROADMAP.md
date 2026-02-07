@@ -30,7 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Glob matching, color helpers, config extension, git adapter functions, and commit classification engine
+- [x] 01-01-PLAN.md — Glob matching, color helpers, config extension, git adapter functions, and commit classification engine
 - [ ] 01-02-PLAN.md — cmdPrBranch subcommand with formatted dry-run report and CLI router wiring
 
 ### Phase 2: Branch Builder
@@ -68,6 +68,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Commit Pipeline | 0/2 | Not started | - |
+| 1. Commit Pipeline | 1/2 | In progress | - |
 | 2. Branch Builder | 0/2 | Not started | - |
 | 3. GSD Integration | 0/1 | Not started | - |
