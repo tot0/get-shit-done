@@ -27,11 +27,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. The tool auto-detects the merge base where the feature branch diverged from main/master (or a configured base branch)
   3. Commits touching only `.planning/` files (or other configured filter paths) are classified as planning-only; commits touching only non-planning files are classified as code-only; commits touching both are classified as mixed
   4. The tool runs as a `pr-branch` subcommand within `gsd-tools.js`, following existing patterns for `execGit()`, `loadConfig()`, and `output()`/`error()`
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 01-01: Git adapter, branch resolution, and commit classification engine
-- [ ] 01-02: Dry-run output and CLI subcommand wiring
+- [ ] 01-01-PLAN.md — Glob matching, color helpers, config extension, git adapter functions, and commit classification engine
+- [ ] 01-02-PLAN.md — cmdPrBranch subcommand with formatted dry-run report and CLI router wiring
 
 ### Phase 2: Branch Builder
 **Goal**: User can produce a clean PR branch with one command, and incrementally update it as they add more commits — without force-pushing
