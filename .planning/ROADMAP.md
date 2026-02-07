@@ -12,7 +12,7 @@ This roadmap delivers a tool that produces clean, planning-file-free branches fo
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Commit Pipeline** - Classify commits and preview filtering results without modifying anything
+- [x] **Phase 1: Commit Pipeline** - Classify commits and preview filtering results without modifying anything
 - [ ] **Phase 2: Branch Builder** - Create and incrementally update the filtered PR branch
 - [ ] **Phase 3: GSD Integration** - Slash command and auto-sync hook
 
@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-01-PLAN.md — Glob matching, color helpers, config extension, git adapter functions, and commit classification engine
-- [ ] 01-02-PLAN.md — cmdPrBranch subcommand with formatted dry-run report and CLI router wiring
+- [x] 01-02-PLAN.md — cmdPrBranch subcommand with formatted dry-run report and CLI router wiring
 
 ### Phase 2: Branch Builder
 **Goal**: User can produce a clean PR branch with one command, and incrementally update it as they add more commits — without force-pushing
@@ -68,6 +68,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Commit Pipeline | 1/2 | In progress | - |
+| 1. Commit Pipeline | 2/2 | Complete | 2026-02-07 |
 | 2. Branch Builder | 0/2 | Not started | - |
 | 3. GSD Integration | 0/1 | Not started | - |
