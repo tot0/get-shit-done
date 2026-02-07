@@ -46,7 +46,7 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Worktree lifecycle, PR branch name derivation, and cherry-pick engine with conflict detection
+- [x] 02-01-PLAN.md — Worktree lifecycle, PR branch name derivation, and cherry-pick engine with conflict detection
 - [ ] 02-02-PLAN.md — Patch-id incremental detection, cmdPrBranch execution mode, CLI router update
 
 ### Phase 3: GSD Integration
@@ -69,5 +69,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Commit Pipeline | 2/2 | Complete | 2026-02-07 |
-| 2. Branch Builder | 0/2 | Not started | - |
+| 2. Branch Builder | 1/2 | In progress | - |
 | 3. GSD Integration | 0/1 | Not started | - |
