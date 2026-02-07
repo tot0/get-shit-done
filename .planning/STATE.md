@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-06)
 Phase: 1 of 3 (Commit Pipeline)
 Plan: 0 of 2 in current phase
 Status: Ready to plan
-Last activity: 2026-02-07 — Roadmap created
+Last activity: 2026-02-07 — Completed quick task 001: Fix discuss-phase auto-continuation for non-Opus models
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -55,11 +55,11 @@ None yet.
 
 - Research flags worktree vs checkout strategy for branch isolation — needs resolution in Phase 2 planning
 
-## Quick Tasks
+### Quick Tasks Completed
 
-| ID | Description | Status | Date |
-|----|-------------|--------|------|
-| 001 | Fix discuss-phase auto-continuation for non-Opus models | Done | 2026-02-07 |
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 001 | Fix discuss-phase auto-continuation for non-Opus models | 2026-02-07 | 06d960f | [001-fix-discuss-phase-auto-continuation-for-](./quick/001-fix-discuss-phase-auto-continuation-for-/) |
 
 ## Session Continuity
 
