@@ -56,10 +56,11 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. `/gsd-pr-branch` slash command invokes the tool with appropriate defaults and displays results to the AI agent
   2. When auto-sync is enabled in config, a post-commit hook automatically updates the PR branch after each commit on the source branch (with re-entrancy guard to prevent infinite loops)
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 03-01: Slash command, auto-sync hook, and installer integration
+- [ ] 03-01-PLAN.md — Slash command (/gsd:pr-branch) and auto_sync config support
+- [ ] 03-02-PLAN.md — Auto-sync git post-commit hook, build wiring, and installer integration
 
 ## Progress
 
