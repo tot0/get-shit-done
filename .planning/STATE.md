@@ -55,8 +55,14 @@ None yet.
 
 - Research flags worktree vs checkout strategy for branch isolation — needs resolution in Phase 2 planning
 
+## Quick Tasks
+
+| ID | Description | Status | Date |
+|----|-------------|--------|------|
+| 001 | Fix discuss-phase auto-continuation for non-Opus models | Done | 2026-02-07 |
+
 ## Session Continuity
 
 Last session: 2026-02-07
-Stopped at: Roadmap created, ready for Phase 1 planning
+Stopped at: Quick-001 completed, ready for Phase 1 planning
 Resume file: None
