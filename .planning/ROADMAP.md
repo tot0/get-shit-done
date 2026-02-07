@@ -43,11 +43,11 @@ Plans:
   3. Mixed commits (touching both planning and code files) are detected, warned about, and skipped — the user sees which commits were skipped and why
   4. If a cherry-pick conflicts, the tool aborts the PR branch update immediately, reports the conflicting commit and files, and leaves the source branch completely untouched
   5. When the PR branch has been pushed to remote and the source branch was rebased (requiring a full rebuild), the tool warns that the update will require a force-push before proceeding
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 02-01: Branch creation, cherry-pick engine, and conflict handling
-- [ ] 02-02: Incremental updates and force-push detection
+- [ ] 02-01-PLAN.md — Worktree lifecycle, PR branch name derivation, and cherry-pick engine with conflict detection
+- [ ] 02-02-PLAN.md — Patch-id incremental detection, cmdPrBranch execution mode, CLI router update
 
 ### Phase 3: GSD Integration
 **Goal**: Users can trigger PR branch filtering from AI agents via slash command, and optionally auto-sync after every commit
