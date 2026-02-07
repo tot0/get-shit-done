@@ -13,7 +13,7 @@ This roadmap delivers a tool that produces clean, planning-file-free branches fo
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Commit Pipeline** - Classify commits and preview filtering results without modifying anything
-- [ ] **Phase 2: Branch Builder** - Create and incrementally update the filtered PR branch
+- [x] **Phase 2: Branch Builder** - Create and incrementally update the filtered PR branch
 - [ ] **Phase 3: GSD Integration** - Slash command and auto-sync hook
 
 ## Phase Details
@@ -47,7 +47,7 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md — Worktree lifecycle, PR branch name derivation, and cherry-pick engine with conflict detection
-- [ ] 02-02-PLAN.md — Patch-id incremental detection, cmdPrBranch execution mode, CLI router update
+- [x] 02-02-PLAN.md — Patch-id incremental detection, cmdPrBranch execution mode, CLI router update
 
 ### Phase 3: GSD Integration
 **Goal**: Users can trigger PR branch filtering from AI agents via slash command, and optionally auto-sync after every commit
@@ -69,5 +69,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Commit Pipeline | 2/2 | Complete | 2026-02-07 |
-| 2. Branch Builder | 1/2 | In progress | - |
+| 2. Branch Builder | 2/2 | Complete | 2026-02-07 |
 | 3. GSD Integration | 0/1 | Not started | - |

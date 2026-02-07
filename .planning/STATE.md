@@ -5,33 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-02-06)
 
 **Core value:** Developers can use GSD planning freely without worrying about PR pollution — one command produces a clean branch for review.
-**Current focus:** Phase 2 - Branch Builder
+**Current focus:** Phase 2 complete — ready for Phase 3
 
 ## Current Position
 
 Phase: 2 of 3 (Branch Builder)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-02-07 — Completed 02-01-PLAN.md
+Plan: 2 of 2 in current phase
+Status: Phase complete
+Last activity: 2026-02-07 — Completed 02-02-PLAN.md
 
-Progress: [██████░░░░] 60%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 2 min
-- Total execution time: 0.08 hours
+- Total execution time: 0.13 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Commit Pipeline | 2/2 | 4 min | 2 min |
-| 2. Branch Builder | 1/2 | 1 min | 1 min |
+| 2. Branch Builder | 2/2 | 3 min | 1.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2 min), 01-02 (2 min), 02-01 (1 min)
+- Last 5 plans: 01-01 (2 min), 01-02 (2 min), 02-01 (1 min), 02-02 (2 min)
 - Trend: Consistent
 
 *Updated after each plan completion*
@@ -51,6 +51,8 @@ Recent decisions affecting current work:
 - Phase 1 forces dry-run regardless of flag — Phase 2 adds execution mode
 - Cherry-pick operates in worktree (wtCwd), never in main repo (cwd)
 - Worktree strategy chosen over checkout — checkout fails with dirty tracked files
+- Rebuild (delete + recreate) unpushed PR branch when source rebased; abort with error when pushed
+- Patch-id matching for stateless incremental detection — no persistent state needed
 
 ### Pending Todos
 
@@ -70,5 +72,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-07
-Stopped at: Completed 02-01-PLAN.md (worktree lifecycle + cherry-pick engine)
-Resume file: .planning/phases/02-branch-builder/02-02-PLAN.md
+Stopped at: Completed 02-02-PLAN.md (Phase 2 complete — execution mode + incremental updates)
+Resume file: None — Phase 3 planning needed
