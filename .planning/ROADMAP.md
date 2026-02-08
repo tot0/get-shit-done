@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Continuation Fixes** - Add explicit continuation cues to all implicit loops that break non-Claude models (completed 2026-02-08)
 - [x] **Phase 2: Model Abstraction** - Replace Claude-specific model resolution with abstract tiers and provider mapping (completed 2026-02-08)
-- [ ] **Phase 3: Reference Neutralization** - Replace Claude model names with abstract tier language in all docs and help text
+- [x] **Phase 3: Reference Neutralization** - Replace Claude model names with abstract tier language in all docs and help text (completed 2026-02-08)
 
 ## Phase Details
 
@@ -58,7 +58,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Neutralize model-profiles.md and rewrite model-profile-resolution.md with full provider flow
+- [x] 03-01-PLAN.md — Neutralize model-profiles.md and rewrite model-profile-resolution.md with full provider flow
 - [x] 03-02-PLAN.md — Update settings.md, set-profile.md, help.md, new-project.md, and README.md workflow descriptions
 
 ## Progress
@@ -70,4 +70,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Continuation Fixes | 1/1 | Complete | 2026-02-08 |
 | 2. Model Abstraction | 1/1 | Complete | 2026-02-08 |
-| 3. Reference Neutralization | 1/2 | In progress | - |
+| 3. Reference Neutralization | 2/2 | Complete | 2026-02-08 |
