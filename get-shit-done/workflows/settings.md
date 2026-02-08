@@ -42,9 +42,9 @@ AskUserQuestion([
     header: "Model",
     multiSelect: false,
     options: [
-      { label: "Quality", description: "Opus everywhere except verification (highest cost)" },
-      { label: "Balanced (Recommended)", description: "Opus for planning, Sonnet for execution/verification" },
-      { label: "Budget", description: "Sonnet for writing, Haiku for research/verification (lowest cost)" }
+      { label: "Quality", description: "Reasoning tier everywhere except verification (highest cost)" },
+      { label: "Balanced (Recommended)", description: "Reasoning for planning, Standard for execution/verification" },
+      { label: "Budget", description: "Standard for writing, Fast for research/verification (lowest cost)" }
     ]
   },
   {

@@ -311,9 +311,9 @@ questions: [
     question: "Which AI models for planning agents?",
     multiSelect: false,
     options: [
-      { label: "Balanced (Recommended)", description: "Sonnet for most agents — good quality/cost ratio" },
-      { label: "Quality", description: "Opus for research/roadmap — higher cost, deeper analysis" },
-      { label: "Budget", description: "Haiku where possible — fastest, lowest cost" }
+      { label: "Balanced (Recommended)", description: "Standard tier for most agents — good quality/cost ratio" },
+      { label: "Quality", description: "Reasoning tier for research/roadmap — higher cost, deeper analysis" },
+      { label: "Budget", description: "Fast tier where possible — fastest, lowest cost" }
     ]
   }
 ]

@@ -1,5 +1,5 @@
 <purpose>
-Switch the model profile used by GSD agents. Controls which Claude model each agent uses, balancing quality vs token spend.
+Switch the model profile used by GSD agents. Controls which AI model tier each agent uses, balancing quality vs token spend.
 </purpose>
 
 <required_reading>
@@ -54,11 +54,11 @@ Agents will now use:
 [Show table from MODEL_PROFILES in gsd-tools.js for selected profile]
 
 Example:
-| Agent | Model |
-|-------|-------|
-| gsd-planner | opus |
-| gsd-executor | sonnet |
-| gsd-verifier | haiku |
+| Agent | Tier |
+|-------|------|
+| gsd-planner | reasoning |
+| gsd-executor | standard |
+| gsd-verifier | fast |
 | ... | ... |
 
 Next spawned agents will use the new profile.
