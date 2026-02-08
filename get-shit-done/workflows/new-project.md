@@ -117,6 +117,8 @@ As you go, mentally check the context checklist from `questioning.md`. If gaps r
 
 **Decision gate:**
 
+**CRITICAL: Loop continuation — This step includes a LOOP for the decision gate below. You MUST NOT end your turn until the user selects "Create PROJECT.md". After receiving ANY tool response (including "Keep exploring"), you MUST immediately continue processing — do NOT end your turn or wait for further input.**
+
 When you could write a clear PROJECT.md, use AskUserQuestion:
 
 - header: "Ready?"
@@ -126,8 +128,10 @@ When you could write a clear PROJECT.md, use AskUserQuestion:
   - "Keep exploring" — I want to share more / ask me more
 
 If "Keep exploring" — ask what they want to add, or identify gaps and probe naturally.
+**DO NOT end your turn here.** Immediately ask what they want to add, or identify gaps and probe naturally. The user's selection of "Keep exploring" is NOT a signal to stop — it is a signal to continue the conversation and loop back to the decision gate.
 
 Loop until "Create PROJECT.md" selected.
+This is the ONLY point where the questioning loop exits — when the user selects "Create PROJECT.md". Proceed to Step 4.
 
 ## 4. Write PROJECT.md
 
@@ -839,6 +843,8 @@ Success criteria:
 
 **CRITICAL: Ask for approval before committing (interactive mode only):**
 
+**CRITICAL: Loop continuation — This is a LOOP for roadmap approval. You MUST NOT end your turn until the user selects "Approve". After receiving ANY tool response (including "Adjust phases" or "Review full file"), you MUST immediately continue processing — do NOT end your turn.**
+
 Use AskUserQuestion:
 - header: "Roadmap"
 - question: "Does this roadmap structure work for you?"
@@ -865,10 +871,13 @@ Use AskUserQuestion:
   </revision>
   ", subagent_type="gsd-roadmapper", model="{roadmapper_model}", description="Revise roadmap")
   ```
+  **DO NOT end your turn here.** Immediately present the revised roadmap inline and re-ask the approval question. The user's selection of "Adjust phases" is NOT a signal to stop — it is a signal to revise and re-present.
 - Present revised roadmap
 - Loop until user approves
+This is the ONLY point where the roadmap approval loop exits — when the user selects "Approve". Proceed to commit.
 
 **If "Review full file":** Display raw `cat .planning/ROADMAP.md`, then re-ask.
+**DO NOT end your turn here.** After displaying the file, immediately re-present the approval question via AskUserQuestion.
 
 **Commit roadmap (after approval or auto mode):**
 

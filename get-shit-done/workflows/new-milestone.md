@@ -311,13 +311,18 @@ Success criteria:
 2. [criterion]
 ```
 
+**CRITICAL: Loop continuation — This is a LOOP for roadmap approval. You MUST NOT end your turn until the user selects "Approve". After receiving ANY tool response (including "Adjust" or "Review"), you MUST immediately continue processing — do NOT end your turn.**
+
 **Ask for approval** via AskUserQuestion:
 - "Approve" — Commit and continue
 - "Adjust phases" — Tell me what to change
 - "Review full file" — Show raw ROADMAP.md
 
 **If "Adjust":** Get notes, re-spawn roadmapper with revision context, loop until approved.
+**DO NOT end your turn here.** After the roadmapper returns the revised roadmap, immediately present it inline and re-ask the approval question. The user's selection of "Adjust" is NOT a signal to stop — it is a signal to revise and re-present.
+This is the ONLY point where the roadmap approval loop exits — when the user selects "Approve". Proceed to commit.
 **If "Review":** Display raw ROADMAP.md, re-ask.
+**DO NOT end your turn here.** After displaying the file, immediately re-present the approval question via AskUserQuestion.
 
 **Commit roadmap** (after approval):
 ```bash
