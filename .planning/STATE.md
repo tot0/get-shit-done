@@ -5,33 +5,34 @@
 See: .planning/PROJECT.md (updated 2026-02-07)
 
 **Core value:** Any supported model on any supported runtime can execute GSD workflows without breaking.
-**Current focus:** Phase 1 - Continuation Fixes
+**Current focus:** Phase 2 - Model Abstraction
 
 ## Current Position
 
-Phase: 1 of 3 (Continuation Fixes)
+Phase: 2 of 3 (Model Abstraction)
 Plan: 1 of 1 in current phase
 Status: Phase complete
-Last activity: 2026-02-08 — Completed 01-01-PLAN.md
+Last activity: 2026-02-08 — Completed 02-01-PLAN.md
 
-Progress: [███░░░░░░░] 25%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
+- Total plans completed: 2
 - Average duration: 2 min
-- Total execution time: 2 min
+- Total execution time: 4 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-continuation-fixes | 1/1 | 2 min | 2 min |
+| 02-model-abstraction | 1/1 | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2 min)
-- Trend: —
+- Last 5 plans: 01-01 (2 min), 02-01 (2 min)
+- Trend: Stable at 2 min/plan
 
 *Updated after each plan completion*
 
@@ -45,6 +46,8 @@ Recent decisions affecting current work:
 - Abstract tiers (reasoning/standard/fast) over Claude names
 - Belt-and-suspenders continuation cues (always explicit, not model-conditional)
 - GSD_MODEL env var for per-invocation override
+- Six provider entries cover all runtime+provider combos (claude, opencode-claude, opencode-codex, opencode-copilot-claude, opencode-copilot-codex, gemini)
+- OpenCode auto-detection defaults to opencode-claude; users switch via GSD_RUNTIME
 
 ### Pending Todos
 
@@ -57,5 +60,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-08
-Stopped at: Completed 01-01-PLAN.md — Phase 1 complete, ready for transition to Phase 2
+Stopped at: Completed 02-01-PLAN.md — Phase 2 complete, ready for transition to Phase 3
 Resume file: None

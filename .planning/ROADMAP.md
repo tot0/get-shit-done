@@ -13,7 +13,7 @@ Three phases take GSD from Claude-only to model-agnostic. First we fix the immed
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Continuation Fixes** - Add explicit continuation cues to all implicit loops that break non-Claude models (completed 2026-02-08)
-- [ ] **Phase 2: Model Abstraction** - Replace Claude-specific model resolution with abstract tiers and provider mapping
+- [x] **Phase 2: Model Abstraction** - Replace Claude-specific model resolution with abstract tiers and provider mapping (completed 2026-02-08)
 - [ ] **Phase 3: Reference Neutralization** - Replace Claude model names with abstract tier language in all docs and help text
 
 ## Phase Details
@@ -44,7 +44,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 02-01-PLAN.md — Abstract tier tables, provider mapping, runtime detection, GSD_MODEL override, and updated cmdResolveModel
+- [x] 02-01-PLAN.md — Abstract tier tables, provider mapping, runtime detection, GSD_MODEL override, and updated cmdResolveModel
 
 ### Phase 3: Reference Neutralization
 **Goal**: All user-facing documentation, help text, and workflow descriptions use abstract tier names instead of Claude model family names, so no model gets confused by seeing another family's branding
@@ -69,5 +69,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Continuation Fixes | 1/1 | Complete | 2026-02-08 |
-| 2. Model Abstraction | 0/1 | Not started | - |
+| 2. Model Abstraction | 1/1 | Complete | 2026-02-08 |
 | 3. Reference Neutralization | 0/2 | Not started | - |
