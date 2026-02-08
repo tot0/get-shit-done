@@ -44,7 +44,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 02-01-PLAN.md — Abstract tiers, provider mapping, runtime detection, and GSD_MODEL override in gsd-tools.js
+- [ ] 02-01-PLAN.md — Abstract tier tables, provider mapping, runtime detection, GSD_MODEL override, and updated cmdResolveModel
 
 ### Phase 3: Reference Neutralization
 **Goal**: All user-facing documentation, help text, and workflow descriptions use abstract tier names instead of Claude model family names, so no model gets confused by seeing another family's branding
