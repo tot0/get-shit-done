@@ -61,7 +61,10 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None yet.
+3 pending:
+- **Prototype jj stacked bookmarks for phase management** (tooling) — explore jj's change-centric model for managing phases as stacked changes
+- **Personal dev workspace for collaborative repos** (planning) — three-tier .planning/ hierarchy separating project context, milestone planning, and personal dev notes
+- **Multi-milestone lifecycle with ad-hoc automation** (planning) — state machine for parallel milestones, ad-hoc agent pickup, automation hooks
 
 ### Blockers/Concerns
 
