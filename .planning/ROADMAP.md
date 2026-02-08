@@ -59,7 +59,7 @@ Plans:
 
 Plans:
 - [ ] 03-01-PLAN.md — Neutralize model-profiles.md and rewrite model-profile-resolution.md with full provider flow
-- [ ] 03-02-PLAN.md — Update settings.md, set-profile.md, help.md, new-project.md, and README.md workflow descriptions
+- [x] 03-02-PLAN.md — Update settings.md, set-profile.md, help.md, new-project.md, and README.md workflow descriptions
 
 ## Progress
 
@@ -70,4 +70,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Continuation Fixes | 1/1 | Complete | 2026-02-08 |
 | 2. Model Abstraction | 1/1 | Complete | 2026-02-08 |
-| 3. Reference Neutralization | 0/2 | Not started | - |
+| 3. Reference Neutralization | 1/2 | In progress | - |
