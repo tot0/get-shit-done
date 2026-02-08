@@ -59,7 +59,7 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Slash command (/gsd:pr-branch) and auto_sync config support
+- [x] 03-01-PLAN.md — Slash command (/gsd:pr-branch) and auto_sync config support
 - [ ] 03-02-PLAN.md — Auto-sync git post-commit hook, build wiring, and installer integration
 
 ## Progress
@@ -71,4 +71,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Commit Pipeline | 2/2 | Complete | 2026-02-07 |
 | 2. Branch Builder | 2/2 | Complete | 2026-02-07 |
-| 3. GSD Integration | 0/1 | Not started | - |
+| 3. GSD Integration | 1/2 | In progress | - |
