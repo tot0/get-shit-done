@@ -12,7 +12,7 @@ Three phases take GSD from Claude-only to model-agnostic. First we fix the immed
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Continuation Fixes** - Add explicit continuation cues to all implicit loops that break non-Claude models
+- [x] **Phase 1: Continuation Fixes** - Add explicit continuation cues to all implicit loops that break non-Claude models (completed 2026-02-08)
 - [ ] **Phase 2: Model Abstraction** - Replace Claude-specific model resolution with abstract tiers and provider mapping
 - [ ] **Phase 3: Reference Neutralization** - Replace Claude model names with abstract tier language in all docs and help text
 
@@ -29,7 +29,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 1 plan
 
 Plans:
-- [ ] 01-01-PLAN.md — Add continuation cues to all 5 implicit loop patterns across 4 workflow files
+- [x] 01-01-PLAN.md — Add continuation cues to all 5 implicit loop patterns across 4 workflow files
 
 ### Phase 2: Model Abstraction
 **Goal**: `gsd-tools.js resolve-model` returns provider-appropriate model identifiers via abstract capability tiers, with per-invocation override support
@@ -68,6 +68,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Continuation Fixes | 0/1 | Not started | - |
+| 1. Continuation Fixes | 1/1 | Complete | 2026-02-08 |
 | 2. Model Abstraction | 0/1 | Not started | - |
 | 3. Reference Neutralization | 0/2 | Not started | - |
