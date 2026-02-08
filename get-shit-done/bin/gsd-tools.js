@@ -1384,18 +1384,37 @@ function cmdResolveModel(cwd, agentType, raw) {
     error('agent-type required');
   }
 
+  // 1. GSD_MODEL override takes absolute precedence
+  const overrideModel = process.env.GSD_MODEL;
+  if (overrideModel) {
+    const result = { model: overrideModel, profile: 'override', runtime: 'override' };
+    output(result, raw, overrideModel);
+    return;
+  }
+
+  // 2. Resolve tier from profile
   const config = loadConfig(cwd);
   const profile = config.model_profile || 'balanced';
 
   const agentModels = MODEL_PROFILES[agentType];
   if (!agentModels) {
-    const result = { model: 'sonnet', profile, unknown_agent: true };
-    output(result, raw, 'sonnet');
+    // Unknown agent: use standard tier with provider mapping
+    const runtime = detectRuntime();
+    const providerModels = PROVIDER_MODELS[runtime] || PROVIDER_MODELS['claude'];
+    const model = providerModels['standard'] || 'sonnet'; // defensive fallback
+    const result = { model, profile, runtime, tier: 'standard', unknown_agent: true };
+    output(result, raw, model);
     return;
   }
 
-  const model = agentModels[profile] || agentModels['balanced'] || 'sonnet';
-  const result = { model, profile };
+  const tier = agentModels[profile] || agentModels['balanced'] || 'standard';
+
+  // 3. Map tier to provider-specific model ID
+  const runtime = detectRuntime();
+  const providerModels = PROVIDER_MODELS[runtime] || PROVIDER_MODELS['claude'];
+  const model = providerModels[tier] || tier; // fallback to raw tier if no mapping
+
+  const result = { model, profile, runtime, tier };
   output(result, raw, model);
 }
 
