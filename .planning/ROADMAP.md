@@ -55,11 +55,11 @@ Plans:
   2. `model-profile-resolution.md` documents the full resolution flow: profile → tier → provider detection → model ID
   3. `settings.md`, `set-profile.md`, `help.md`, and `new-project.md` all use tier names in descriptions (e.g., "Reasoning tier for all agents" not "Opus everywhere")
   4. No workflow, reference, or template file contains "Opus", "Sonnet", or "Haiku" as a model quality descriptor (they may appear in the PROVIDER_MODELS mapping table as Claude-specific values)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: Update model-profiles.md and model-profile-resolution.md references
-- [ ] 03-02: Update settings.md, set-profile.md, help.md, and new-project.md workflow descriptions
+- [ ] 03-01-PLAN.md — Neutralize model-profiles.md and rewrite model-profile-resolution.md with full provider flow
+- [ ] 03-02-PLAN.md — Update settings.md, set-profile.md, help.md, new-project.md, and README.md workflow descriptions
 
 ## Progress
 
