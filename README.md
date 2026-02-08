@@ -490,13 +490,13 @@ GSD stores project settings in `.planning/config.json`. Configure during `/gsd:n
 
 ### Model Profiles
 
-Control which Claude model each agent uses. Balance quality vs token spend.
+Control which AI model tier each agent uses. Balance quality vs token spend.
 
 | Profile | Planning | Execution | Verification |
 |---------|----------|-----------|--------------|
-| `quality` | Opus | Opus | Sonnet |
-| `balanced` (default) | Opus | Sonnet | Sonnet |
-| `budget` | Sonnet | Sonnet | Haiku |
+| `quality` | Reasoning | Reasoning | Standard |
+| `balanced` (default) | Reasoning | Standard | Standard |
+| `budget` | Standard | Standard | Fast |
 
 Switch profiles:
 ```
