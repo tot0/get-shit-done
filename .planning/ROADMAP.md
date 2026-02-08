@@ -41,10 +41,10 @@ Plans:
   3. Runtime is auto-detected from environment variables or process context
   4. `GSD_MODEL=gpt-5.3-codex node gsd-tools.js resolve-model gsd-planner` returns `gpt-5.3-codex` (override takes precedence)
   5. On Claude Code without override, `resolve-model gsd-planner` with quality profile returns `opus` (backward compatible)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 02-01: Abstract tiers, provider mapping, runtime detection, and GSD_MODEL override in gsd-tools.js
+- [ ] 02-01-PLAN.md — Abstract tiers, provider mapping, runtime detection, and GSD_MODEL override in gsd-tools.js
 
 ### Phase 3: Reference Neutralization
 **Goal**: All user-facing documentation, help text, and workflow descriptions use abstract tier names instead of Claude model family names, so no model gets confused by seeing another family's branding
