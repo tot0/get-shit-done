@@ -249,11 +249,15 @@ Append to Gaps section (structured YAML for plan-phase --gaps):
 
 **After any response:**
 
+**CRITICAL: Loop continuation — After processing the user's response below, if more tests remain, you MUST NOT end your turn. You MUST immediately update the Current Test section and present the next test. Do NOT end your turn between processing a response and presenting the next test.**
+
 Update Summary counts.
 Update frontmatter.updated timestamp.
 
 If more tests remain → Update Current Test, go to `present_test`
+**DO NOT end your turn here.** Immediately update the Current Test section in the UAT file and present the next test to the user. The completion of processing one test response is NOT a signal to stop — it is a signal to continue to the next test.
 If no more tests → Go to `complete_session`
+This is the ONLY point where the test loop exits — when no more tests remain. Proceed to `complete_session`.
 </step>
 
 <step name="resume_from_file">

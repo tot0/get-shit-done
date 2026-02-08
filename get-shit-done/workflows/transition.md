@@ -370,6 +370,8 @@ Next: Phase [X+1] — [Name]
 ⚡ Auto-continuing: Plan Phase [X+1] in detail
 ```
 
+**DO NOT end your turn after displaying the above message.** You MUST immediately invoke the SlashCommand below. The "Auto-continuing" message is NOT the end of your turn — it is a preamble to the tool invocation that follows.
+
 Exit skill and invoke SlashCommand("/gsd:plan-phase [X+1]")
 
 </if>
@@ -414,6 +416,8 @@ Phase {X} marked complete.
 
 ⚡ Auto-continuing: Complete milestone and archive
 ```
+
+**DO NOT end your turn after displaying the above message.** You MUST immediately invoke the SlashCommand below. The "Auto-continuing" message is NOT the end of your turn — it is a preamble to the tool invocation that follows.
 
 Exit skill and invoke SlashCommand("/gsd:complete-milestone {version}")
 
