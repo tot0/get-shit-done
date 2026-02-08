@@ -26,10 +26,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. All 5 implicit continuation loops identified in the 002-AUDIT have explicit "MUST NOT end your turn" and "DO NOT end your turn here" language matching the quick-001 pattern
   2. The new-project.md questioning loop, roadmap approval loop, new-milestone.md approval loop, transition.md auto-continuation, and verify-work.md test loop all have explicit continuation cues
   3. No workflow contains an implicit "loop until" or "go to" pattern without an accompanying explicit continuation instruction
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 01-01: Add continuation cues to all 5 implicit loop patterns across 4 workflow files
+- [ ] 01-01-PLAN.md — Add continuation cues to all 5 implicit loop patterns across 4 workflow files
 
 ### Phase 2: Model Abstraction
 **Goal**: `gsd-tools.js resolve-model` returns provider-appropriate model identifiers via abstract capability tiers, with per-invocation override support
