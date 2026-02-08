@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Commit Pipeline** - Classify commits and preview filtering results without modifying anything
 - [x] **Phase 2: Branch Builder** - Create and incrementally update the filtered PR branch
-- [ ] **Phase 3: GSD Integration** - Slash command and auto-sync hook
+- [x] **Phase 3: GSD Integration** - Slash command and auto-sync hook
 
 ## Phase Details
 
@@ -60,7 +60,7 @@ Plans:
 
 Plans:
 - [x] 03-01-PLAN.md — Slash command (/gsd:pr-branch) and auto_sync config support
-- [ ] 03-02-PLAN.md — Auto-sync git post-commit hook, build wiring, and installer integration
+- [x] 03-02-PLAN.md — Auto-sync git post-commit hook, build wiring, and installer integration
 
 ## Progress
 
@@ -71,4 +71,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Commit Pipeline | 2/2 | Complete | 2026-02-07 |
 | 2. Branch Builder | 2/2 | Complete | 2026-02-07 |
-| 3. GSD Integration | 1/2 | In progress | - |
+| 3. GSD Integration | 2/2 | Complete | 2026-02-08 |
