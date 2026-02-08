@@ -73,9 +73,10 @@ None.
 |---|-------------|------|--------|-----------|
 | 001 | Fix discuss-phase auto-continuation for non-Opus models | 2026-02-07 | 06d960f | [001-fix-discuss-phase-auto-continuation-for-](./quick/001-fix-discuss-phase-auto-continuation-for-/) |
 | 002 | Audit GSD workflows for model-agnostic compatibility | 2026-02-07 | 5af1849 | [002-audit-gsd-workflows-for-model-agnostic-c](./quick/002-audit-gsd-workflows-for-model-agnostic-c/) |
+| 003 | Make git hook auto-sync opt-in | 2026-02-08 | 57bab87 | [003-make-git-hook-auto-sync-opt-in-don-t-ins](./quick/003-make-git-hook-auto-sync-opt-in-don-t-ins/) |
 
 ## Session Continuity
 
 Last session: 2026-02-08
-Stopped at: Completed 03-02-PLAN.md (Phase 3 complete — all milestone phases delivered)
-Resume file: None — milestone complete
+Stopped at: Completed quick-003 (make git hook auto-sync opt-in)
+Resume file: None
