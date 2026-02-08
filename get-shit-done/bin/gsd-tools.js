@@ -123,18 +123,84 @@ const { execSync } = require('child_process');
 // ─── Model Profile Table ─────────────────────────────────────────────────────
 
 const MODEL_PROFILES = {
-  'gsd-planner':              { quality: 'opus', balanced: 'opus',   budget: 'sonnet' },
-  'gsd-roadmapper':           { quality: 'opus', balanced: 'sonnet', budget: 'sonnet' },
-  'gsd-executor':             { quality: 'opus', balanced: 'sonnet', budget: 'sonnet' },
-  'gsd-phase-researcher':     { quality: 'opus', balanced: 'sonnet', budget: 'haiku' },
-  'gsd-project-researcher':   { quality: 'opus', balanced: 'sonnet', budget: 'haiku' },
-  'gsd-research-synthesizer': { quality: 'sonnet', balanced: 'sonnet', budget: 'haiku' },
-  'gsd-debugger':             { quality: 'opus', balanced: 'sonnet', budget: 'sonnet' },
-  'gsd-codebase-mapper':      { quality: 'sonnet', balanced: 'haiku', budget: 'haiku' },
-  'gsd-verifier':             { quality: 'sonnet', balanced: 'sonnet', budget: 'haiku' },
-  'gsd-plan-checker':         { quality: 'sonnet', balanced: 'sonnet', budget: 'haiku' },
-  'gsd-integration-checker':  { quality: 'sonnet', balanced: 'sonnet', budget: 'haiku' },
+  'gsd-planner':              { quality: 'reasoning', balanced: 'reasoning', budget: 'standard' },
+  'gsd-roadmapper':           { quality: 'reasoning', balanced: 'standard',  budget: 'standard' },
+  'gsd-executor':             { quality: 'reasoning', balanced: 'standard',  budget: 'standard' },
+  'gsd-phase-researcher':     { quality: 'reasoning', balanced: 'standard',  budget: 'fast' },
+  'gsd-project-researcher':   { quality: 'reasoning', balanced: 'standard',  budget: 'fast' },
+  'gsd-research-synthesizer': { quality: 'standard',  balanced: 'standard',  budget: 'fast' },
+  'gsd-debugger':             { quality: 'reasoning', balanced: 'standard',  budget: 'standard' },
+  'gsd-codebase-mapper':      { quality: 'standard',  balanced: 'fast',      budget: 'fast' },
+  'gsd-verifier':             { quality: 'standard',  balanced: 'standard',  budget: 'fast' },
+  'gsd-plan-checker':         { quality: 'standard',  balanced: 'standard',  budget: 'fast' },
+  'gsd-integration-checker':  { quality: 'standard',  balanced: 'standard',  budget: 'fast' },
 };
+
+// ─── Provider Model Mapping ──────────────────────────────────────────────────
+// Claude Code: shorthand (opus, sonnet, haiku)
+// OpenCode: provider/model format — supports both native APIs and GitHub Copilot
+// Gemini CLI: model names (gemini-2.5-pro, etc.)
+//
+// Switch provider with GSD_RUNTIME env var (e.g. GSD_RUNTIME=opencode-copilot-claude)
+
+const PROVIDER_MODELS = {
+  'claude': {
+    reasoning: 'opus',
+    standard:  'sonnet',
+    fast:      'haiku',
+  },
+  'opencode-claude': {
+    reasoning: 'anthropic/claude-opus-4-6',
+    standard:  'anthropic/claude-sonnet-4-5',
+    fast:      'anthropic/claude-haiku-4-5',
+  },
+  'opencode-codex': {
+    reasoning: 'openai/gpt-5.3-codex',
+    standard:  'openai/gpt-5.3-codex',
+    fast:      'openai/gpt-5.3-codex',
+  },
+  'opencode-copilot-claude': {
+    reasoning: 'github-copilot/claude-opus-4.6',
+    standard:  'github-copilot/claude-sonnet-4.5',
+    fast:      'github-copilot/claude-haiku-4.5',
+  },
+  'opencode-copilot-codex': {
+    reasoning: 'github-copilot/gpt-5.2-codex',
+    standard:  'github-copilot/gpt-5.2-codex',
+    fast:      'github-copilot/gpt-5.2-codex',
+  },
+  'gemini': {
+    reasoning: 'gemini-2.5-pro',
+    standard:  'gemini-2.5-flash',
+    fast:      'gemini-2.5-flash-lite',
+  },
+};
+
+// ─── Runtime Detection ───────────────────────────────────────────────────────
+
+function detectRuntime() {
+  // Explicit override (highest priority) — supports all PROVIDER_MODELS keys
+  // e.g. GSD_RUNTIME=opencode-codex to use Codex models under OpenCode
+  if (process.env.GSD_RUNTIME) {
+    return process.env.GSD_RUNTIME;
+  }
+  // OpenCode sets OPENCODE=1 — MUST check before CLAUDE_CODE_SSE_PORT
+  // because OpenCode proxies Claude and has both env vars
+  // Defaults to opencode-claude (Claude models); use GSD_RUNTIME=opencode-codex for Codex
+  if (process.env.OPENCODE === '1') {
+    return 'opencode-claude';
+  }
+  // Gemini CLI detection via Google-specific env vars
+  if (process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_USE_VERTEXAI) {
+    return 'gemini';
+  }
+  // Claude Code sets CLAUDE_CODE_SSE_PORT in child processes
+  if (process.env.CLAUDE_CODE_SSE_PORT) {
+    return 'claude';
+  }
+  // Fallback: default to claude (backward compatible)
+  return 'claude';
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
