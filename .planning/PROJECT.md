@@ -8,47 +8,52 @@ A tool within the GSD toolkit that produces clean, planning-file-free branches f
 
 Developers can use GSD planning freely without worrying about PR pollution — one command produces a clean branch for review.
 
-## Requirements
+## Completed Milestones
 
-### Validated
+### v1: PR Branch Filter (2026-02-07 → 2026-02-10)
 
-- Existing GSD toolkit with `.planning/` directory convention — existing
-- Git integration with per-task atomic commits — existing
-- Slash command infrastructure for user-facing commands — existing
-- Hook system for post-commit/post-push automation — existing
-- Multi-runtime installer (Claude Code, OpenCode, Gemini) — existing
-- `config.json` for project-level configuration — existing
+**What was built:**
+- Commit classification engine: categorizes commits as code-only, planning-only, or mixed based on configurable glob patterns
+- Cherry-pick engine: creates `{branch}-pr` branches via git worktree (never modifies working branch)
+- Incremental updates: patch-id matching detects new commits, cherry-picks only what's new — no force-push
+- Conflict detection: aborts cleanly on cherry-pick failure, reports conflicting files
+- Rebase detection: identifies when source branch was rebased, rebuilds PR branch (warns if pushed)
+- `/gsd:pr-branch` slash command: thin wrapper invoking `gsd-tools.js pr-branch`
+- Auto-sync post-commit hook: `hooks/gsd-pr-sync.js` with re-entrancy guard, opt-in via `--install-hooks` flag
+- Config support: `pr_branch.auto_sync`, `pr_branch.base_branch`, `pr_branch.filter_paths` in `config.json`
 
-### Active
+**Architecture:**
+- All logic in `get-shit-done/bin/gsd-tools.js` as `pr-branch` subcommand
+- Uses existing patterns: `execGit()`, `loadConfig()`, `output()`/`error()`
+- Hook follows `gsd-statusline.js`/`gsd-check-update.js` patterns (silent failure, background spawn)
+- Installer uses marker-based append to preserve existing user git hooks
 
-- [ ] On-demand filtered PR branch creation from working branch
-- [ ] Auto-splitting of mixed commits (code + planning changes in same commit)
-- [ ] Preservation of individual code commit history (cherry-pick style, not squash)
-- [ ] Derived branch naming convention (e.g., `feature/foo` -> `feature/foo-pr`)
-- [ ] Re-run to update PR branch after addressing feedback
-- [ ] Auto-sync via post-commit or post-push git hook
-- [ ] Loud failure on conflicts or dependency issues with dropped commits
-- [ ] GSD slash command invocation (`/gsd-pr-branch` or similar)
-- [ ] Standalone git-level command invocation
-- [ ] GSD commit hygiene enforcement (planning commits isolated from code commits)
+**Key decisions (finalized):**
 
-### Out of Scope
+| Decision | Rationale | Status |
+|----------|-----------|--------|
+| Cherry-pick over squash | User wants reviewers to see individual commit history | Done |
+| Warn-and-skip mixed commits (v1) | Auto-split deferred to v2; GSD atomic commits mean mixed is rare | Done |
+| Fail loudly on conflicts | Silent continuation could produce broken branches | Done |
+| Derived branch naming (`-pr` suffix) | Simple convention, no user input needed each time | Done |
+| Incremental updates via patch-id | Stateless detection — no persistent state file needed | Done |
+| Implement in gsd-tools.js | Centralizes CLI tools, no PATH issues, slash command invokes directly | Done |
+| Worktree over checkout | Checkout fails with dirty tracked files; worktree is isolated | Done |
+| Rebuild unpushed / abort pushed on rebase | Protects remote history while allowing local rebuilds | Done |
+| Env var over lock file for re-entrancy | Auto-scoped to process tree, no crash orphans | Done |
+| Marker-based append for git hooks | Preserves existing user post-commit hooks — never overwrites | Done |
+| Auto-sync opt-in via --install-hooks flag | Too invasive to install by default | Done |
 
-- Keeping planning files outside the main repo (separate version control) — user acknowledged as potentially better but explicitly deferred
-- Squash mode for PR branches — user wants individual commits preserved
-- Interactive commit selection — tool should be fully automated
-- PR creation itself — this tool produces the branch, user handles the PR
-- Supporting non-`.planning/` planning file locations — standardized on `.planning/`
+**Stats:** 3 phases, 6 plans, ~10 min total execution time
 
-## Context
-
-- The user works across multiple repos with GSD, hitting this friction repeatedly
-- Current workarounds: asking reviewers to ignore `.planning/` files, deleting before final PR
-- GSD already enforces atomic per-task commits with conventional commit format
-- GSD's `config.json` already has a `commit_docs` setting that controls whether planning docs are committed — this tool complements that by handling the case where they ARE committed (for local tracking) but shouldn't appear in PRs
-- The existing hook infrastructure (`hooks/gsd-statusline.js`, `hooks/gsd-check-update.js`) provides a pattern for the auto-sync hook
-- The installer (`bin/install.js`) already handles multi-runtime hook registration
-- New `gsd-tools.js` centralizes CLI utilities — PR branch filter will be a subcommand there
+**Files delivered:**
+- `get-shit-done/bin/gsd-tools.js` — glob matching, color helpers, config extension, git adapter, commit classifier, cherry-pick engine, patch-id incremental detection, `pr-branch` subcommand
+- `commands/gsd/pr-branch.md` — slash command
+- `hooks/gsd-pr-sync.js` — post-commit auto-sync hook
+- `hooks/dist/gsd-pr-sync.js` — built hook for npm distribution
+- `scripts/build-hooks.js` — updated to include gsd-pr-sync
+- `bin/install.js` — git hook installer with marker-based append + uninstall cleanup
+- `get-shit-done/templates/config.json` — `pr_branch.auto_sync` default
 
 ## Future Vision: Stacked PRs via jj
 
@@ -63,27 +68,37 @@ This PR branch filter is step 1 of a larger workflow vision:
 - Development continues linearly; the stacking layer is a read-only view for reviewers
 - User has jj research to bring in when this phase is reached
 
-**How this milestone relates:** The current PR branch filter establishes the core primitive (filtering planning commits, cherry-picking code commits). The stacked PR workflow extends this by additionally grouping code commits by phase and managing multiple PR branches as a stack. The classification and cherry-pick engine built now will be reused.
+**How v1 relates:** The PR branch filter establishes the core primitive (filtering planning commits, cherry-picking code commits). The stacked PR workflow extends this by additionally grouping code commits by phase and managing multiple PR branches as a stack. The classification and cherry-pick engine built in v1 will be reused.
+
+## Active Requirements (for future milestones)
+
+- [ ] Auto-splitting of mixed commits (code + planning changes in same commit) — deferred from v1
+- [ ] GSD commit hygiene enforcement (planning commits isolated from code commits)
+- [ ] Personal dev workspace with three-tier `.planning/` hierarchy (see todos)
+- [ ] Multi-milestone lifecycle with parallel workstreams (see todos)
+- [ ] Automated forward-integration from upstream to fork (see todos)
+- [ ] jj stacked bookmarks prototype (see todos)
+
+## Out of Scope
+
+- Keeping planning files outside the main repo (separate version control) — user acknowledged as potentially better but explicitly deferred
+- Squash mode for PR branches — user wants individual commits preserved
+- Interactive commit selection — tool should be fully automated
+- PR creation itself — this tool produces the branch, user handles the PR
 
 ## Constraints
 
-- **Tech stack**: Must be JavaScript (Node.js) or shell script — no new runtime dependencies, consistent with zero-dependency philosophy
-- **Compatibility**: Must work with existing GSD git conventions (per-task commits, conventional format)
-- **Git safety**: Must never modify the user's working branch — only create/update the filtered PR branch
-- **Atomicity**: Mixed commit auto-splitting must preserve commit metadata (author, date, message) for the code portion
-- **Idempotency**: Re-running the command on an already-filtered branch must produce the same result
+- **Tech stack**: JavaScript (Node.js) — no new runtime dependencies, zero-dependency philosophy
+- **Compatibility**: Works with existing GSD git conventions (per-task commits, conventional format)
+- **Git safety**: Never modifies the user's working branch — only creates/updates the filtered PR branch
+- **Idempotency**: Re-running the command on an already-filtered branch produces the same result
 
-## Key Decisions
+## Repository Context
 
-| Decision | Rationale | Outcome |
-|----------|-----------|---------|
-| Cherry-pick over squash | User wants reviewers to see individual commit history | -- Pending |
-| Warn-and-skip mixed commits (v1) | Auto-split deferred to v2; GSD atomic commits mean mixed should be rare | -- Pending |
-| Fail loudly on conflicts | Silent continuation could produce broken branches | -- Pending |
-| Derived branch naming (`-pr` suffix) | Simple convention, no user input needed each time | -- Pending |
-| Incremental updates (stable PR history) | Avoid force-push; find PR HEAD in source, cherry-pick only new commits | -- Pending |
-| Implement in gsd-tools.js | Centralizes CLI tools, no PATH issues, slash command can invoke directly | -- Pending |
-| Post-commit/post-push hook for auto-sync | Optional convenience, start with on-demand command first | -- Pending |
+- **Upstream**: `glittercowboy/get-shit-done` — the main GSD repo
+- **Fork**: `lupickup/get-shit-done` — carries pr-branch and future custom features
+- **Fork strategy**: `lupickup/main` branches from upstream main + merged PR branch; feature work branches from `lupickup/main`
+- **Forward integration**: Periodically rebase/merge upstream changes into `lupickup/main`
 
 ---
-*Last updated: 2026-02-06 after initialization*
+*Last updated: 2026-02-10 — milestone v1 complete*

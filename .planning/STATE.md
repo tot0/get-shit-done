@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-06)
 
 **Core value:** Developers can use GSD planning freely without worrying about PR pollution — one command produces a clean branch for review.
-**Current focus:** Phase 3 complete — all phases delivered
+**Current focus:** Milestone v1 complete — finalizing for PR and carry-forward
 
 ## Current Position
 
 Phase: 3 of 3 (GSD Integration)
 Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-02-08 — Completed quick task 003: Make git hook auto-sync opt-in: don't install unless user passes flag
+Status: Milestone complete — ready for new feature branch
+Last activity: 2026-02-10 — Finalized milestone, updated PROJECT.md for carry-forward
 
 Progress: [██████████] 100%
 
@@ -81,6 +81,20 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-08
-Stopped at: Completed quick-003 (make git hook auto-sync opt-in)
+Last session: 2026-02-10
+Stopped at: Milestone v1 finalized — PROJECT.md updated, todos captured, ready for PR push
 Resume file: None
+
+### Carry-Forward Checklist
+
+Files to overlay on new feature branches:
+- `.planning/PROJECT.md` — cross-milestone vision, decisions, repo context
+- `.planning/config.json` — workflow preferences
+- `.planning/todos/pending/` — 4 pending enhancement ideas
+
+```bash
+git checkout lupickup/planning-rules -- \
+  .planning/PROJECT.md \
+  .planning/config.json \
+  .planning/todos/pending/
+```
