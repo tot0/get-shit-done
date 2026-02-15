@@ -70,11 +70,24 @@ This PR branch filter is step 1 of a larger workflow vision:
 
 **How v1 relates:** The PR branch filter establishes the core primitive (filtering planning commits, cherry-picking code commits). The stacked PR workflow extends this by additionally grouping code commits by phase and managing multiple PR branches as a stack. The classification and cherry-pick engine built in v1 will be reused.
 
-## Active Requirements (for future milestones)
+## Current Milestone: v2 Personal Dev Workspace
+
+**Goal:** Restructure `.planning/` into a three-tier hierarchy so project context persists across milestones while milestone planning detail stays ephemeral.
+
+**Target features:**
+- Three-tier `.planning/` hierarchy: `project/` (persistent), `milestones/<name>/` (scoped), `todos/` (cross-milestone)
+- Migration command from current flat layout to new hierarchy
+- Milestone lifecycle: create scoped directory on start, summarize into MILESTONES.md and delete on complete
+- MILESTONES.md for milestone history (separate from PROJECT.md)
+- Update all GSD workflow references to use new paths
+- Designed for eventual upstream contribution (not fork-only)
+
+**Motivation:** In fork-based workflows, GSD planning doesn't survive milestone boundaries. Each milestone starts fresh, losing project-level context (PROJECT.md, codebase maps, decisions). Milestone detail (roadmaps, phase plans, research) is too noisy to land in even a personal dev main. A clear separation of persistent vs ephemeral solves both.
+
+## Future Requirements
 
 - [ ] Auto-splitting of mixed commits (code + planning changes in same commit) — deferred from v1
 - [ ] GSD commit hygiene enforcement (planning commits isolated from code commits)
-- [ ] Personal dev workspace with three-tier `.planning/` hierarchy (see todos)
 - [ ] Multi-milestone lifecycle with parallel workstreams (see todos)
 - [ ] Automated forward-integration from upstream to fork (see todos)
 - [ ] jj stacked bookmarks prototype (see todos)
@@ -101,4 +114,4 @@ This PR branch filter is step 1 of a larger workflow vision:
 - **Forward integration**: Periodically rebase/merge upstream changes into `lupickup/main`
 
 ---
-*Last updated: 2026-02-10 — milestone v1 complete*
+*Last updated: 2026-02-15 — milestone v2 started*
