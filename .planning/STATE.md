@@ -2,10 +2,11 @@
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-02-15 — Milestone v2 started
+Phase: 4 — Hierarchy & Layout Detection
+Plan: — (not yet planned)
+Status: Not started
+Progress: ░░░░░░░░░░ 0/3 phases
+Last activity: 2026-02-15 — Roadmap created for v2
 
 ## Project Reference
 
@@ -20,6 +21,12 @@ See: .planning/PROJECT.md (updated 2026-02-15)
 - Fork-based workflow: lupickup/get-shit-done fork of glittercowboy/get-shit-done
 - All logic centralized in gsd-tools.js, zero-dependency JavaScript
 - pr-branch already filters .planning/ at commit level — new hierarchy organizes what's inside
+- v2 roadmap: 3 phases (4–6), foundation → migration → lifecycle
+- Phase 4 is the critical foundation: hierarchy structure + layout detection + backward compat
+
+## Session Continuity
+
+Next action: `/gsd-plan-phase 4` to create execution plan for Hierarchy & Layout Detection
 
 ---
-*Last updated: 2026-02-15 — milestone v2 started*
+*Last updated: 2026-02-15 — roadmap created*

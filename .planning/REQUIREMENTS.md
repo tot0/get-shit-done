@@ -68,27 +68,27 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| HIER-01 | — | Pending |
-| HIER-02 | — | Pending |
-| HIER-03 | — | Pending |
-| HIER-04 | — | Pending |
-| MIGR-01 | — | Pending |
-| MIGR-02 | — | Pending |
-| MIGR-03 | — | Pending |
-| LIFE-01 | — | Pending |
-| LIFE-02 | — | Pending |
-| LIFE-03 | — | Pending |
-| LIFE-04 | — | Pending |
-| WORK-01 | — | Pending |
-| WORK-02 | — | Pending |
-| WORK-03 | — | Pending |
-| WORK-04 | — | Pending |
+| HIER-01 | Phase 4 | Pending |
+| HIER-02 | Phase 4 | Pending |
+| HIER-03 | Phase 4 | Pending |
+| HIER-04 | Phase 4 | Pending |
+| MIGR-01 | Phase 5 | Pending |
+| MIGR-02 | Phase 4 | Pending |
+| MIGR-03 | Phase 5 | Pending |
+| LIFE-01 | Phase 6 | Pending |
+| LIFE-02 | Phase 6 | Pending |
+| LIFE-03 | Phase 6 | Pending |
+| LIFE-04 | Phase 6 | Pending |
+| WORK-01 | Phase 5 | Pending |
+| WORK-02 | Phase 4 | Pending |
+| WORK-03 | Phase 5 | Pending |
+| WORK-04 | Phase 4 | Pending |
 
 **Coverage:**
 - v2 requirements: 15 total
-- Mapped to phases: 0
-- Unmapped: 15 (pending roadmap creation)
+- Mapped to phases: 15
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-02-15*
-*Last updated: 2026-02-15 after initial definition*
+*Last updated: 2026-02-15 — traceability updated with phase assignments*
