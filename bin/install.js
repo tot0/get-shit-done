@@ -43,6 +43,7 @@ const hasGemini = args.includes('--gemini');
 const hasCodex = args.includes('--codex');
 const hasBoth = args.includes('--both'); // Legacy flag, keeps working
 const hasAll = args.includes('--all');
+const hasAutoSync = args.includes('--auto-sync');
 const hasUninstall = args.includes('--uninstall') || args.includes('-u');
 
 // Runtime selection - can be set by flags or interactive prompt
@@ -218,7 +219,7 @@ console.log(banner);
 
 // Show help if requested
 if (hasHelp) {
-  console.log(`  ${yellow}Usage:${reset} npx get-shit-done-cc [options]\n\n  ${yellow}Options:${reset}\n    ${cyan}-g, --global${reset}              Install globally (to config directory)\n    ${cyan}-l, --local${reset}               Install locally (to current directory)\n    ${cyan}--claude${reset}                  Install for Claude Code only\n    ${cyan}--opencode${reset}                Install for OpenCode only\n    ${cyan}--gemini${reset}                  Install for Gemini only\n    ${cyan}--codex${reset}                   Install for Codex only\n    ${cyan}--all${reset}                     Install for all runtimes\n    ${cyan}-u, --uninstall${reset}           Uninstall GSD (remove all GSD files)\n    ${cyan}-c, --config-dir <path>${reset}   Specify custom config directory\n    ${cyan}-h, --help${reset}                Show this help message\n    ${cyan}--force-statusline${reset}        Replace existing statusline config\n\n  ${yellow}Examples:${reset}\n    ${dim}# Interactive install (prompts for runtime and location)${reset}\n    npx get-shit-done-cc\n\n    ${dim}# Install for Claude Code globally${reset}\n    npx get-shit-done-cc --claude --global\n\n    ${dim}# Install for Gemini globally${reset}\n    npx get-shit-done-cc --gemini --global\n\n    ${dim}# Install for Codex globally${reset}\n    npx get-shit-done-cc --codex --global\n\n    ${dim}# Install for all runtimes globally${reset}\n    npx get-shit-done-cc --all --global\n\n    ${dim}# Install to custom config directory${reset}\n    npx get-shit-done-cc --codex --global --config-dir ~/.codex-work\n\n    ${dim}# Install to current project only${reset}\n    npx get-shit-done-cc --claude --local\n\n    ${dim}# Uninstall GSD from Codex globally${reset}\n    npx get-shit-done-cc --codex --global --uninstall\n\n  ${yellow}Notes:${reset}\n    The --config-dir option is useful when you have multiple configurations.\n    It takes priority over CLAUDE_CONFIG_DIR / GEMINI_CONFIG_DIR / CODEX_HOME environment variables.\n`);
+  console.log(`  ${yellow}Usage:${reset} npx get-shit-done-cc [options]\n\n  ${yellow}Options:${reset}\n    ${cyan}-g, --global${reset}              Install globally (to config directory)\n    ${cyan}-l, --local${reset}               Install locally (to current directory)\n    ${cyan}--claude${reset}                  Install for Claude Code only\n    ${cyan}--opencode${reset}                Install for OpenCode only\n    ${cyan}--gemini${reset}                  Install for Gemini only\n    ${cyan}--codex${reset}                   Install for Codex only\n    ${cyan}--all${reset}                     Install for all runtimes\n    ${cyan}--auto-sync${reset}               Install PR branch auto-sync post-commit hook\n    ${cyan}-u, --uninstall${reset}           Uninstall GSD (remove all GSD files)\n    ${cyan}-c, --config-dir <path>${reset}   Specify custom config directory\n    ${cyan}-h, --help${reset}                Show this help message\n    ${cyan}--force-statusline${reset}        Replace existing statusline config\n\n  ${yellow}Examples:${reset}\n    ${dim}# Interactive install (prompts for runtime and location)${reset}\n    npx get-shit-done-cc\n\n    ${dim}# Install for Claude Code globally${reset}\n    npx get-shit-done-cc --claude --global\n\n    ${dim}# Install for Gemini globally${reset}\n    npx get-shit-done-cc --gemini --global\n\n    ${dim}# Install for Codex globally${reset}\n    npx get-shit-done-cc --codex --global\n\n    ${dim}# Install for all runtimes globally${reset}\n    npx get-shit-done-cc --all --global\n\n    ${dim}# Install PR branch auto-sync hook${reset}\n    npx get-shit-done-cc --claude --local --auto-sync\n\n    ${dim}# Install to custom config directory${reset}\n    npx get-shit-done-cc --codex --global --config-dir ~/.codex-work\n\n    ${dim}# Install to current project only${reset}\n    npx get-shit-done-cc --claude --local\n\n    ${dim}# Uninstall GSD from Codex globally${reset}\n    npx get-shit-done-cc --codex --global --uninstall\n\n  ${yellow}Notes:${reset}\n    The --config-dir option is useful when you have multiple configurations.\n    It takes priority over CLAUDE_CONFIG_DIR / GEMINI_CONFIG_DIR / CODEX_HOME environment variables.\n`);
   process.exit(0);
 }
 
@@ -240,6 +241,67 @@ function buildHookCommand(configDir, hookName) {
   // Use forward slashes for Node.js compatibility on all platforms
   const hooksPath = configDir.replace(/\\/g, '/') + '/hooks/' + hookName;
   return `node "${hooksPath}"`;
+}
+
+/**
+ * Install GSD auto-sync git post-commit hook.
+ * Uses marker-based append to preserve existing user hooks.
+ * @param {string} configDir - GSD config directory (e.g., ~/.claude)
+ * @param {boolean} isGlobal - Whether this is a global install
+ */
+function installGitPostCommitHook(configDir, isGlobal) {
+  // Only install for projects that have a .git directory in cwd
+  const cwd = process.cwd();
+  const gitDir = path.join(cwd, '.git');
+  if (!fs.existsSync(gitDir) || !fs.statSync(gitDir).isDirectory()) return;
+
+  // Respect core.hooksPath if set
+  let hooksDir;
+  try {
+    const { execSync } = require('child_process');
+    const hooksPath = execSync('git config core.hooksPath', { encoding: 'utf8', cwd }).trim();
+    hooksDir = hooksPath ? (path.isAbsolute(hooksPath) ? hooksPath : path.resolve(cwd, hooksPath)) : path.join(gitDir, 'hooks');
+  } catch {
+    hooksDir = path.join(gitDir, 'hooks');
+  }
+
+  if (!fs.existsSync(hooksDir)) {
+    fs.mkdirSync(hooksDir, { recursive: true });
+  }
+
+  const postCommitPath = path.join(hooksDir, 'post-commit');
+  const hookScriptPath = isGlobal
+    ? buildHookCommand(configDir, 'gsd-pr-sync.js')
+    : 'node ' + path.basename(configDir) + '/hooks/gsd-pr-sync.js';
+
+  const gsdMarker = '# GSD-PR-SYNC-START';
+  const gsdEndMarker = '# GSD-PR-SYNC-END';
+  const hookCall = gsdMarker + '\n' + hookScriptPath + ' 2>/dev/null || true\n' + gsdEndMarker;
+
+  if (fs.existsSync(postCommitPath)) {
+    const existing = fs.readFileSync(postCommitPath, 'utf-8');
+    if (existing.includes(gsdMarker)) {
+      // Replace existing GSD section
+      const replaced = existing.replace(
+        new RegExp(gsdMarker + '[\\s\\S]*?' + gsdEndMarker),
+        hookCall
+      );
+      fs.writeFileSync(postCommitPath, replaced);
+    } else {
+      // Append to existing post-commit hook
+      fs.appendFileSync(postCommitPath, '\n' + hookCall + '\n');
+    }
+  } else {
+    // Create new post-commit hook
+    fs.writeFileSync(postCommitPath, '#!/bin/sh\n' + hookCall + '\n');
+  }
+
+  // Ensure executable (POSIX only)
+  try {
+    fs.chmodSync(postCommitPath, '755');
+  } catch {}
+
+  console.log('  ' + green + '✓' + reset + ' Configured git post-commit hook for PR auto-sync');
 }
 
 /**
@@ -1385,7 +1447,7 @@ function uninstall(isGlobal, runtime = 'claude') {
   // 4. Remove GSD hooks
   const hooksDir = path.join(targetDir, 'hooks');
   if (fs.existsSync(hooksDir)) {
-    const gsdHooks = ['gsd-statusline.js', 'gsd-check-update.js', 'gsd-check-update.sh', 'gsd-context-monitor.js'];
+    const gsdHooks = ['gsd-statusline.js', 'gsd-check-update.js', 'gsd-check-update.sh', 'gsd-context-monitor.js', 'gsd-pr-sync.js'];
     let hookCount = 0;
     for (const hook of gsdHooks) {
       const hookPath = path.join(hooksDir, hook);
@@ -1487,7 +1549,40 @@ function uninstall(isGlobal, runtime = 'claude') {
     }
   }
 
-  // 6. For OpenCode, clean up permissions from opencode.json
+  // 7. Remove GSD post-commit hook section from git hooks
+  try {
+    const cwd = process.cwd();
+    const gitDir = path.join(cwd, '.git');
+    if (fs.existsSync(gitDir) && fs.statSync(gitDir).isDirectory()) {
+      let gitHooksDir;
+      try {
+        const hooksPath = execSync('git config core.hooksPath', { encoding: 'utf8', cwd }).trim();
+        gitHooksDir = hooksPath ? (path.isAbsolute(hooksPath) ? hooksPath : path.resolve(cwd, hooksPath)) : path.join(gitDir, 'hooks');
+      } catch {
+        gitHooksDir = path.join(gitDir, 'hooks');
+      }
+
+      const postCommitPath = path.join(gitHooksDir, 'post-commit');
+      if (fs.existsSync(postCommitPath)) {
+        const content = fs.readFileSync(postCommitPath, 'utf-8');
+        if (content.includes('# GSD-PR-SYNC-START')) {
+          const cleaned = content.replace(/\n?# GSD-PR-SYNC-START[\s\S]*?# GSD-PR-SYNC-END\n?/g, '');
+          if (cleaned.trim() === '#!/bin/sh' || cleaned.trim() === '') {
+            fs.unlinkSync(postCommitPath);
+            console.log(`  ${green}✓${reset} Removed git post-commit hook`);
+          } else {
+            fs.writeFileSync(postCommitPath, cleaned);
+            console.log(`  ${green}✓${reset} Removed GSD section from git post-commit hook`);
+          }
+          removedCount++;
+        }
+      }
+    }
+  } catch {
+    // Best effort cleanup only
+  }
+
+  // 8. For OpenCode, clean up permissions from opencode.json
   if (isOpencode) {
     // For local uninstalls, clean up ./.opencode/opencode.json
     // For global uninstalls, clean up ~/.config/opencode/opencode.json
@@ -2188,6 +2283,11 @@ function install(isGlobal, runtime = 'claude') {
       });
       console.log(`  ${green}✓${reset} Configured context window monitor hook`);
     }
+  }
+
+  // Install git post-commit hook for PR auto-sync (opt-in via --auto-sync)
+  if (hasAutoSync) {
+    installGitPostCommitHook(targetDir, isGlobal);
   }
 
   return { settingsPath, settings, statuslineCommand, runtime };

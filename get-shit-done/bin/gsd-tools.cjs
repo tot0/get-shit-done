@@ -29,6 +29,7 @@
  *   phase-plan-index <phase>           Index plans with waves and status
  *   websearch <query>                  Search web via Brave API (if configured)
  *     [--limit N] [--freshness day|week|month]
+ *   pr-branch [--dry-run] [--base b]   Create/update PR branch (--dry-run to preview)
  *
  * Phase Operations:
  *   phase next-decimal <phase>         Calculate next decimal phase number
@@ -581,6 +582,19 @@ async function main() {
         limit: limitIdx !== -1 ? parseInt(args[limitIdx + 1], 10) : 10,
         freshness: freshnessIdx !== -1 ? args[freshnessIdx + 1] : null,
       }, raw);
+      break;
+    }
+
+    case 'pr-branch': {
+      const dryRun = args.includes('--dry-run');
+      const baseIdx = args.indexOf('--base');
+      const eqBaseArg = args.find(a => a.startsWith('--base='));
+      const base = baseIdx !== -1
+        ? args[baseIdx + 1]
+        : eqBaseArg
+          ? eqBaseArg.slice('--base='.length)
+          : null;
+      await commands.cmdPrBranch(cwd, { dryRun, base }, raw);
       break;
     }
 
