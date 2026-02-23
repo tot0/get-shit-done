@@ -13,7 +13,8 @@ const DIST_DIR = path.join(HOOKS_DIR, 'dist');
 const HOOKS_TO_COPY = [
   'gsd-check-update.js',
   'gsd-context-monitor.js',
-  'gsd-statusline.js'
+  'gsd-statusline.js',
+  'gsd-pr-sync.js'
 ];
 
 function build() {

@@ -58,6 +58,9 @@ function cmdConfigEnsureSection(cwd, raw) {
     },
     parallelization: true,
     brave_search: hasBraveSearch,
+    pr_branch: {
+      auto_sync: false,
+    },
   };
   const defaults = {
     ...hardcoded,

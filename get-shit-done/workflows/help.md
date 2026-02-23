@@ -322,6 +322,20 @@ Archive accumulated phase directories from completed milestones.
 
 Usage: `/gsd:cleanup`
 
+**`/gsd:pr-branch`**
+Create or update a clean PR branch that excludes planning-only commits.
+
+- Scans commits since divergence from base branch (`main` by default)
+- Classifies commits as planning-only, code-only, or mixed
+- Cherry-picks code-only commits to `{current-branch}-pr`
+- Skips mixed commits and reports them for manual split
+- Use `--dry-run` to preview without creating/updating branch
+- Auto-sync option: set `pr_branch.auto_sync: true` in config for automatic updates after every commit
+
+Usage: `/gsd:pr-branch`
+Usage: `/gsd:pr-branch --dry-run`
+Usage: `/gsd:pr-branch --base main`
+
 **`/gsd:help`**
 Show this command reference.
 

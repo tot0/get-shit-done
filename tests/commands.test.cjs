@@ -6,6 +6,7 @@ const { test, describe, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 const { runGsdTools, createTempProject, cleanup } = require('./helpers.cjs');
 
 describe('history-digest command', () => {
@@ -657,5 +658,80 @@ describe('scaffold command', () => {
     const output = JSON.parse(result.output);
     assert.strictEqual(output.created, false, 'should not overwrite');
     assert.strictEqual(output.reason, 'already_exists');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// pr-branch command
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('pr-branch command', () => {
+  let tmpDir;
+
+  const git = (cmd) => execSync(cmd, { cwd: tmpDir, stdio: ['pipe', 'pipe', 'pipe'] }).toString('utf-8').trim();
+
+  beforeEach(() => {
+    tmpDir = createTempProject();
+
+    git('git init');
+    git('git config user.email "gsd-tests@example.com"');
+    git('git config user.name "GSD Tests"');
+    git('git checkout -b main');
+
+    // Base commit on main
+    fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'src', 'base.js'), 'module.exports = {}\n');
+    git('git add .');
+    git('git commit -m "base commit"');
+
+    // Feature branch
+    git('git checkout -b feature/pr-branch-tests');
+
+    // Planning-only commit
+    fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'NOTES.md'), '# planning\n');
+    git('git add .planning/NOTES.md');
+    git('git commit -m "planning docs"');
+
+    // Code-only commit
+    fs.writeFileSync(path.join(tmpDir, 'src', 'feature.js'), 'module.exports = { ok: true }\n');
+    git('git add src/feature.js');
+    git('git commit -m "feature code"');
+  });
+
+  afterEach(() => {
+    cleanup(tmpDir);
+  });
+
+  test('dry-run reports planning and code commit counts', () => {
+    const result = runGsdTools('pr-branch --dry-run --base main', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+    assert.ok(result.output.includes('Dry-run: pr-branch'), 'should print dry-run header');
+    assert.ok(result.output.includes('1 planning'), 'should report planning count');
+    assert.ok(result.output.includes('1 code'), 'should report code count');
+  });
+
+  test('execution creates -pr branch with only code commit changes', () => {
+    const result = runGsdTools('pr-branch --base main --raw', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const parsed = JSON.parse(result.output);
+    assert.strictEqual(parsed.picked, 1, 'should cherry-pick exactly one code commit');
+    assert.ok(parsed.prBranch.endsWith('-pr'), 'should create a -pr branch');
+
+    const prBranch = parsed.prBranch;
+    const branches = git('git branch --format="%(refname:short)"').split('\n');
+    assert.ok(branches.includes(prBranch), 'PR branch should exist locally');
+
+    const fileInPr = git(`git show ${prBranch}:src/feature.js`);
+    assert.ok(fileInPr.includes('ok: true'), 'code file should exist on PR branch');
+
+    let planningPresent = true;
+    try {
+      git(`git show ${prBranch}:.planning/NOTES.md`);
+    } catch {
+      planningPresent = false;
+    }
+    assert.strictEqual(planningPresent, false, 'planning-only file should not be in PR branch');
   });
 });

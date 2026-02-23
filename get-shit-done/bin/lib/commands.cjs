@@ -3,7 +3,9 @@
  */
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { execSync } = require('child_process');
+const readline = require('readline');
 const { safeReadFile, loadConfig, isGitIgnored, execGit, normalizePhaseName, getArchivedPhaseDirs, generateSlugInternal, getMilestoneInfo, resolveModelInternal, MODEL_PROFILES, output, error, findPhaseInternal } = require('./core.cjs');
 const { extractFrontmatter } = require('./frontmatter.cjs');
 
@@ -264,6 +266,552 @@ function cmdCommit(cwd, message, files, raw, amend) {
   const hash = hashResult.exitCode === 0 ? hashResult.stdout : null;
   const result = { committed: true, hash, reason: 'committed' };
   output(result, raw, hash || 'committed');
+}
+
+function globToRegex(pattern) {
+  let p = pattern;
+  // Directory patterns (ending with /) match all contents
+  if (p.endsWith('/')) p = p + '**';
+
+  let regex = '';
+  let i = 0;
+  while (i < p.length) {
+    const ch = p[i];
+    if (ch === '*' && p[i + 1] === '*') {
+      // ** matches any path segments
+      regex += (p[i + 2] === '/') ? '(?:.*/)?' : '.*';
+      i += (p[i + 2] === '/') ? 3 : 2;
+    } else if (ch === '*') {
+      regex += '[^/]*'; // * matches within single path segment
+      i++;
+    } else if (ch === '?') {
+      regex += '[^/]';
+      i++;
+    } else if ('.+^${}()|[]\\'.includes(ch)) {
+      regex += '\\' + ch;
+      i++;
+    } else {
+      regex += ch;
+      i++;
+    }
+  }
+  return new RegExp('^' + regex + '$');
+}
+
+function resolveBaseBranch(cwd, config, flagBase) {
+  const candidates = [];
+  if (flagBase) candidates.push(flagBase);
+  if (config.pr_branch_base) candidates.push(config.pr_branch_base);
+  candidates.push('main', 'master');
+
+  for (const branch of candidates) {
+    const r = execGit(cwd, ['rev-parse', '--verify', branch]);
+    if (r.exitCode === 0) return branch;
+  }
+  return null;
+}
+
+function getMergeBase(cwd, baseBranch) {
+  const r = execGit(cwd, ['merge-base', baseBranch, 'HEAD']);
+  if (r.exitCode !== 0) return null;
+  return r.stdout;
+}
+
+function listCommits(cwd, mergeBase) {
+  const r = execGit(cwd, ['log', '--format=%h%x00%s%x00%p', mergeBase + '..HEAD']);
+  if (r.exitCode !== 0 || !r.stdout) return [];
+  return r.stdout.split('\n').map(line => {
+    const [hash, subject, parents] = line.split('\0');
+    return { hash, subject, isMerge: parents.includes(' ') };
+  });
+}
+
+function getCommitFiles(cwd, hash, isMerge) {
+  const args = isMerge
+    ? ['diff', '--name-only', hash + '^1', hash]
+    : ['diff-tree', '--no-commit-id', '-r', '--name-only', hash];
+  const r = execGit(cwd, args);
+  if (r.exitCode !== 0 || !r.stdout) return [];
+  return r.stdout.split('\n').filter(Boolean);
+}
+
+function classifyCommit(files, filterPatterns) {
+  const planningFiles = [];
+  const codeFiles = [];
+  for (const file of files) {
+    if (filterPatterns.some(re => re.test(file))) {
+      planningFiles.push(file);
+    } else {
+      codeFiles.push(file);
+    }
+  }
+  const type = planningFiles.length > 0 && codeFiles.length > 0 ? 'mixed'
+    : planningFiles.length > 0 ? 'planning'
+      : 'code';
+  return { type, planningFiles, codeFiles };
+}
+
+function getPrBranchName(cwd) {
+  const r = execGit(cwd, ['rev-parse', '--abbrev-ref', 'HEAD']);
+  if (r.exitCode !== 0 || r.stdout === 'HEAD') return null;
+  return r.stdout + '-pr';
+}
+
+function prBranchExists(cwd, branchName) {
+  return execGit(cwd, ['rev-parse', '--verify', branchName]).exitCode === 0;
+}
+
+function prBranchPushed(cwd, branchName) {
+  return execGit(cwd, ['rev-parse', '--verify', 'refs/remotes/origin/' + branchName]).exitCode === 0;
+}
+
+function createWorktree(cwd, branchName, startPoint) {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-pr-'));
+  execGit(cwd, ['worktree', 'prune']);
+  const exists = execGit(cwd, ['rev-parse', '--verify', branchName]).exitCode === 0;
+  const result = exists
+    ? execGit(cwd, ['worktree', 'add', tmpDir, branchName])
+    : execGit(cwd, ['worktree', 'add', '-b', branchName, tmpDir, startPoint]);
+  if (result.exitCode !== 0) {
+    try { fs.rmdirSync(tmpDir); } catch {}
+    return null;
+  }
+  return tmpDir;
+}
+
+function removeWorktree(cwd, worktreePath) {
+  if (!worktreePath) return;
+  execGit(cwd, ['worktree', 'remove', '--force', worktreePath]);
+  try { fs.rmSync(worktreePath, { recursive: true, force: true }); } catch {}
+  execGit(cwd, ['worktree', 'prune']);
+}
+
+function cherryPickCommits(wtCwd, commitsToCherry) {
+  const picked = [];
+  let failed = null;
+  const skippedMerges = [];
+  const skippedEmpty = [];
+
+  for (const commit of commitsToCherry) {
+    if (commit.isMerge) {
+      skippedMerges.push({ hash: commit.hash, subject: commit.subject, reason: 'merge commit cannot be cherry-picked' });
+      continue;
+    }
+
+    const r = execGit(wtCwd, ['cherry-pick', commit.hash]);
+    if (r.exitCode === 0) {
+      picked.push({ hash: commit.hash, subject: commit.subject });
+      continue;
+    }
+
+    // Check for conflict files
+    const diffResult = execGit(wtCwd, ['diff', '--name-only', '--diff-filter=U']);
+    const conflictFiles = diffResult.stdout ? diffResult.stdout.split('\n').filter(Boolean) : [];
+
+    // Empty cherry-pick (already applied)
+    if (conflictFiles.length === 0 && (r.stderr.includes('nothing to commit') || r.stdout.includes('nothing to commit'))) {
+      skippedEmpty.push({ hash: commit.hash, subject: commit.subject, reason: 'already applied' });
+      execGit(wtCwd, ['cherry-pick', '--skip']);
+      continue;
+    }
+
+    // Real conflict — abort and break
+    if (conflictFiles.length > 0) {
+      execGit(wtCwd, ['cherry-pick', '--abort']);
+      failed = { hash: commit.hash, subject: commit.subject, conflictFiles };
+      break;
+    }
+
+    // Unknown failure — abort and break
+    execGit(wtCwd, ['cherry-pick', '--abort']);
+    failed = { hash: commit.hash, subject: commit.subject, conflictFiles: [], error: r.stderr };
+    break;
+  }
+
+  return { picked, failed, skippedMerges, skippedEmpty };
+}
+
+function buildPatchIdMap(cwd, commitSHAs) {
+  const map = new Map();
+  for (const sha of commitSHAs) {
+    const diff = execGit(cwd, ['diff-tree', '-p', sha]);
+    if (diff.exitCode !== 0 || !diff.stdout) continue;
+    try {
+      const out = execSync('git patch-id --stable', {
+        input: diff.stdout, cwd, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'],
+      }).trim();
+      if (out) {
+        const patchId = out.split(' ')[0];
+        map.set(patchId, sha);
+      }
+    } catch {}
+  }
+  return map;
+}
+
+function findNewCodeCommits(cwd, baseBranch, prBranch, codeCommits) {
+  // Get PR branch commit SHAs
+  const prLog = execGit(cwd, ['rev-list', baseBranch + '..' + prBranch]);
+  const prSHAs = (prLog.exitCode === 0 && prLog.stdout) ? prLog.stdout.split('\n').filter(Boolean) : [];
+
+  // If PR branch is empty or fresh, all code commits are new
+  if (prSHAs.length === 0) {
+    return { newCommits: codeCommits, needsRebuild: false };
+  }
+
+  // Build patch-id maps for both sides
+  const prPatchIds = buildPatchIdMap(cwd, prSHAs);
+  const sourcePatchIds = buildPatchIdMap(cwd, codeCommits.map(c => c.hash));
+
+  // Filter: code commits whose patch-id is NOT already on PR branch
+  const newCommits = [];
+  let matchCount = 0;
+  for (const commit of codeCommits) {
+    // Find this commit's patch-id in the source map
+    let commitPatchId = null;
+    for (const [pid, sha] of sourcePatchIds) {
+      if (sha === commit.hash) {
+        commitPatchId = pid;
+        break;
+      }
+    }
+    if (commitPatchId && prPatchIds.has(commitPatchId)) {
+      matchCount++;
+    } else {
+      newCommits.push(commit);
+    }
+  }
+
+  // Detect rebuild scenario: PR has commits but zero source patch-ids match
+  const needsRebuild = prSHAs.length > 0 && matchCount === 0;
+
+  return { newCommits, needsRebuild };
+}
+
+function promptForBranch() {
+  return new Promise((resolve, reject) => {
+    if (!process.stdin.isTTY) {
+      reject(new Error(
+        'Cannot auto-detect base branch. Use --base <branch> or set pr_branch.base_branch in config.'
+      ));
+      return;
+    }
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stderr,
+    });
+    rl.question('Enter base branch name: ', (answer) => {
+      rl.close();
+      const branch = answer.trim();
+      if (!branch) reject(new Error('No branch name provided'));
+      else resolve(branch);
+    });
+  });
+}
+
+function useColor() {
+  if (process.env.NO_COLOR !== undefined) return false;
+  if (process.env.FORCE_COLOR !== undefined) return true;
+  return process.stdout.isTTY === true;
+}
+
+function c(colorCode, text) {
+  return useColor() ? colorCode + text + '\x1b[0m' : text;
+}
+
+async function cmdPrBranch(cwd, flags, raw) {
+  const config = loadConfig(cwd);
+
+  // Step A: Resolve base branch
+  let baseBranch = resolveBaseBranch(cwd, config, flags.base);
+  if (!baseBranch) {
+    try {
+      const prompted = await promptForBranch();
+      const verify = execGit(cwd, ['rev-parse', '--verify', prompted]);
+      if (verify.exitCode !== 0) {
+        error('Branch "' + prompted + '" does not exist');
+      }
+      baseBranch = prompted;
+    } catch (e) {
+      error(e.message);
+    }
+  }
+
+  // Step B: Find merge base
+  const mergeBase = getMergeBase(cwd, baseBranch);
+  if (!mergeBase) {
+    error('Could not find merge base between ' + baseBranch + ' and HEAD');
+  }
+  const shortMergeBase = execGit(cwd, ['rev-parse', '--short', mergeBase]).stdout;
+
+  // Step C: List and classify commits
+  const filterPatterns = (config.pr_branch_filter_paths || ['.planning/']).map(p => globToRegex(p));
+  const commits = listCommits(cwd, mergeBase);
+
+  if (commits.length === 0) {
+    const msg = 'No commits found since divergence from ' + baseBranch + '. Are you on the right branch?';
+    if (raw) {
+      output({
+        baseBranch,
+        mergeBase: shortMergeBase,
+        filterPaths: config.pr_branch_filter_paths,
+        commits: [],
+        summary: { planning: 0, code: 0, mixed: 0 },
+      }, raw, JSON.stringify({ planning: 0, code: 0, mixed: 0 }));
+    }
+    process.stdout.write(msg + '\n');
+    process.exit(0);
+  }
+
+  const classifiedCommits = [];
+  for (const commit of commits) {
+    const files = getCommitFiles(cwd, commit.hash, commit.isMerge);
+    const classification = classifyCommit(files, filterPatterns);
+    classifiedCommits.push({ ...commit, ...classification });
+  }
+
+  // Count categories
+  let planCount = 0;
+  let codeCount = 0;
+  let mixedCount = 0;
+  for (const cc of classifiedCommits) {
+    if (cc.type === 'planning') planCount++;
+    else if (cc.type === 'code') codeCount++;
+    else mixedCount++;
+  }
+
+  // ── Dry-run mode ────────────────────────────────────────────────────────
+  if (flags.dryRun) {
+    // Raw output for dry-run
+    if (raw) {
+      output({
+        mode: 'dry-run',
+        baseBranch,
+        mergeBase: shortMergeBase,
+        filterPaths: config.pr_branch_filter_paths,
+        commits: classifiedCommits.map(cc => ({
+          hash: cc.hash,
+          subject: cc.subject,
+          type: cc.type,
+          isMerge: cc.isMerge,
+          planningFiles: cc.planningFiles,
+          codeFiles: cc.codeFiles,
+        })),
+        summary: { planning: planCount, code: codeCount, mixed: mixedCount },
+      }, raw, JSON.stringify({ planning: planCount, code: codeCount, mixed: mixedCount }));
+    }
+
+    // Human-readable dry-run report
+    const rule = '─'.repeat(50);
+    const warn = '⚠';
+    const lines = [];
+
+    lines.push('Dry-run: pr-branch');
+    lines.push(c('\x1b[2m', rule));
+    lines.push('Base branch: ' + c('\x1b[1m', baseBranch) + '  Merge base: ' + c('\x1b[1m', shortMergeBase));
+
+    const defaultPaths = ['.planning/'];
+    const configuredPaths = config.pr_branch_filter_paths || defaultPaths;
+    const isCustomized = configuredPaths.length !== defaultPaths.length ||
+      configuredPaths.some((p, i) => p !== defaultPaths[i]);
+    if (isCustomized) {
+      lines.push('Filter paths: ' + configuredPaths.join(', '));
+    }
+
+    lines.push('');
+
+    for (const cc of classifiedCommits) {
+      if (cc.type === 'planning') {
+        lines.push(' ' + c('\x1b[2m', 'PLAN') + '  ' + cc.hash + ' ' + cc.subject);
+      } else if (cc.type === 'code') {
+        lines.push(' ' + c('\x1b[32m', 'CODE') + '  ' + cc.hash + ' ' + cc.subject);
+      } else {
+        lines.push(c('\x1b[33m', warn) + ' ' + c('\x1b[33m', 'MIX') + '   ' + cc.hash + ' ' + cc.subject);
+        lines.push('       Planning: ' + cc.planningFiles.join(', '));
+        lines.push('       Code:     ' + cc.codeFiles.join(', '));
+        lines.push('       Tip: Split this commit to rescue code changes');
+      }
+    }
+
+    lines.push('');
+    lines.push(c('\x1b[2m', rule));
+    lines.push('Summary: ' + planCount + ' planning · ' + codeCount + ' code · ' + mixedCount + ' mixed');
+
+    if (mixedCount > 0) {
+      lines.push('');
+      lines.push(c('\x1b[33m', warn + ' ' + mixedCount + ' mixed commit(s) need splitting before creating PR branch'));
+    } else if (codeCount > 0) {
+      lines.push('');
+      lines.push(c('\x1b[32m', 'Run without --dry-run to create PR branch'));
+    } else if (planCount > 0 && codeCount === 0 && mixedCount === 0) {
+      lines.push('');
+      lines.push('No code commits to include in PR branch — all commits are planning-only');
+    }
+
+    process.stdout.write(lines.join('\n') + '\n');
+    process.exit(0);
+  }
+
+  // ── Execution mode ──────────────────────────────────────────────────────
+
+  const rule = '─'.repeat(50);
+  const warn = '⚠';
+
+  // Step 1: Derive PR branch name
+  const prBranch = getPrBranchName(cwd);
+  if (!prBranch) {
+    error('Cannot derive PR branch name: detached HEAD. Checkout a branch first.');
+  }
+
+  // Step 2: Filter to code-only commits (oldest first for cherry-pick order)
+  const codeCommits = classifiedCommits.filter(cc => cc.type === 'code').reverse();
+  const mixedCommits = classifiedCommits.filter(cc => cc.type === 'mixed');
+
+  if (codeCommits.length === 0) {
+    const msg = 'No code commits to cherry-pick.';
+    if (mixedCommits.length > 0) {
+      process.stdout.write(msg + ' ' + mixedCommits.length + ' mixed commit(s) skipped.\n');
+    } else {
+      process.stdout.write(msg + '\n');
+    }
+    process.exit(0);
+  }
+
+  // Step 3: Determine incremental vs fresh
+  let prExists = prBranchExists(cwd, prBranch);
+  let commitsToCherry;
+  let mode = 'fresh';
+
+  if (prExists) {
+    const { newCommits, needsRebuild } = findNewCodeCommits(cwd, baseBranch, prBranch, codeCommits);
+
+    if (needsRebuild) {
+      if (prBranchPushed(cwd, prBranch)) {
+        error('PR branch was pushed to remote. Source appears rebased — update will require force-push. Delete the remote PR branch or use --force (future v2) to proceed.');
+      }
+      // Not pushed — safe to rebuild
+      process.stderr.write(c('\x1b[33m', warn + ' Source appears rebased. PR branch will be rebuilt.') + '\n');
+      execGit(cwd, ['branch', '-D', prBranch]);
+      prExists = false;
+      commitsToCherry = codeCommits;
+      mode = 'rebuild';
+    } else {
+      commitsToCherry = newCommits;
+      mode = 'incremental';
+    }
+
+    if (commitsToCherry.length === 0) {
+      process.stdout.write('PR branch is up to date. No new commits to cherry-pick.\n');
+      process.exit(0);
+    }
+  } else {
+    commitsToCherry = codeCommits;
+  }
+
+  // Step 4: Create worktree and cherry-pick (try/finally)
+  let wtPath;
+  let cpResult;
+  try {
+    const startPoint = prExists ? null : mergeBase;
+    wtPath = createWorktree(cwd, prBranch, startPoint);
+    if (!wtPath) error('Failed to create worktree for PR branch');
+
+    cpResult = cherryPickCommits(wtPath, commitsToCherry);
+
+    if (cpResult.failed) {
+      // UX-03: Conflict report
+      const failLines = [];
+      failLines.push(c('\x1b[31m', 'Cherry-pick conflict on commit ' + cpResult.failed.hash));
+      failLines.push('  Subject: ' + cpResult.failed.subject);
+      if (cpResult.failed.conflictFiles.length > 0) {
+        failLines.push('  Conflicting files:');
+        for (const f of cpResult.failed.conflictFiles) {
+          failLines.push('    - ' + f);
+        }
+      }
+      if (cpResult.failed.error) {
+        failLines.push('  Error: ' + cpResult.failed.error);
+      }
+      failLines.push('');
+      failLines.push('Successfully cherry-picked ' + cpResult.picked.length + ' commit(s) before conflict.');
+      failLines.push('PR branch has been left in its pre-update state.');
+      process.stderr.write(failLines.join('\n') + '\n');
+      process.exit(1);
+    }
+  } finally {
+    removeWorktree(cwd, wtPath);
+  }
+
+  // Step 5: Raw JSON output for execution mode
+  if (raw) {
+    output({
+      mode: 'execute',
+      prBranch,
+      baseBranch,
+      mergeBase: shortMergeBase,
+      picked: cpResult.picked,
+      skippedMixed: mixedCommits.map(cc => ({ hash: cc.hash, subject: cc.subject })),
+      skippedMerges: cpResult.skippedMerges,
+      skippedEmpty: cpResult.skippedEmpty,
+      failed: null,
+    }, raw, JSON.stringify({
+      prBranch,
+      picked: cpResult.picked.length,
+      skippedMixed: mixedCommits.length,
+      skippedMerges: cpResult.skippedMerges.length,
+      skippedEmpty: cpResult.skippedEmpty.length,
+    }));
+  }
+
+  // Step 6: Build execution summary
+  const execLines = [];
+  execLines.push('pr-branch: ' + c('\x1b[1m', prBranch));
+  execLines.push(c('\x1b[2m', rule));
+
+  if (mode === 'fresh') {
+    execLines.push('Created new PR branch from merge base ' + shortMergeBase);
+  } else if (mode === 'rebuild') {
+    execLines.push('Rebuilt PR branch (source was rebased)');
+  } else {
+    execLines.push('Incremental update');
+  }
+  execLines.push('');
+
+  // Cherry-picked commits
+  for (const p of cpResult.picked) {
+    execLines.push('  ' + c('\x1b[32m', 'CODE') + '  ' + p.hash + ' ' + p.subject);
+  }
+
+  // Skipped mixed
+  for (const m of mixedCommits) {
+    execLines.push(c('\x1b[33m', warn) + ' ' + c('\x1b[33m', 'MIX') + '   ' + m.hash + ' ' + m.subject);
+  }
+
+  // Skipped merges
+  for (const sm of cpResult.skippedMerges) {
+    execLines.push(c('\x1b[2m', '  SKIP') + '  ' + sm.hash + ' ' + sm.subject + ' (merge)');
+  }
+
+  // Skipped empty (already applied)
+  for (const se of cpResult.skippedEmpty) {
+    execLines.push(c('\x1b[2m', '  SKIP') + '  ' + se.hash + ' ' + se.subject + ' (already applied)');
+  }
+
+  execLines.push('');
+  execLines.push(c('\x1b[2m', rule));
+
+  const skippedTotal = mixedCommits.length + cpResult.skippedMerges.length + cpResult.skippedEmpty.length;
+  execLines.push('Cherry-picked: ' + cpResult.picked.length + ' · Skipped: ' + skippedTotal +
+    (mixedCommits.length > 0 ? ' (' + mixedCommits.length + ' mixed)' : '') +
+    ' · PR branch: ' + prBranch);
+
+  if (mixedCommits.length > 0) {
+    execLines.push('');
+    execLines.push(c('\x1b[33m', warn + ' Split mixed commits to include their code changes'));
+  }
+
+  process.stdout.write(execLines.join('\n') + '\n');
+  process.exit(0);
 }
 
 function cmdSummaryExtract(cwd, summaryPath, fields, raw) {
@@ -549,6 +1097,7 @@ module.exports = {
   cmdHistoryDigest,
   cmdResolveModel,
   cmdCommit,
+  cmdPrBranch,
   cmdSummaryExtract,
   cmdWebsearch,
   cmdProgressRender,
