@@ -210,6 +210,28 @@ This phase covers:
     assert.strictEqual(output.error, 'malformed_roadmap', 'should identify malformed roadmap');
     assert.ok(output.message.includes('missing'), 'should explain the issue');
   });
+
+  test('prefers canonical hierarchical ROADMAP when both layouts exist', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, '.planning', 'ROADMAP.md'),
+      `# Roadmap\n\n### Phase 1: Flat Phase\n**Goal:** Flat goal\n`
+    );
+
+    const canonicalRoadmapDir = path.join(tmpDir, '.planning', 'workspace', 'current');
+    fs.mkdirSync(canonicalRoadmapDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(canonicalRoadmapDir, 'ROADMAP.md'),
+      `# Roadmap\n\n### Phase 1: Hierarchy Phase\n**Goal:** Hierarchy goal\n`
+    );
+
+    const result = runGsdTools('roadmap get-phase 1', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const output = JSON.parse(result.output);
+    assert.strictEqual(output.found, true, 'phase should be found');
+    assert.strictEqual(output.phase_name, 'Hierarchy Phase', 'canonical roadmap should win in conflicts');
+    assert.strictEqual(output.goal, 'Hierarchy goal', 'goal should come from canonical roadmap');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -829,4 +851,3 @@ describe('roadmap update-plan-progress command', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // phase add command
 // ─────────────────────────────────────────────────────────────────────────────
-

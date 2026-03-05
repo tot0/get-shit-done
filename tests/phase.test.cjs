@@ -115,6 +115,20 @@ describe('phases list command', () => {
     assert.deepStrictEqual(output.files, ['01-01-PLAN.md'], 'should only list phase 01 plans');
     assert.strictEqual(output.phase_dir, 'foundation', 'should report phase name without number prefix');
   });
+
+  test('prefers canonical hierarchical phases root when both layouts exist', () => {
+    const canonicalPhases = path.join(tmpDir, '.planning', 'workspace', 'current', 'phases');
+    fs.mkdirSync(canonicalPhases, { recursive: true });
+
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '01-flat-phase'), { recursive: true });
+    fs.mkdirSync(path.join(canonicalPhases, '01-hier-phase'), { recursive: true });
+
+    const result = runGsdTools('phases list', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const output = JSON.parse(result.output);
+    assert.deepStrictEqual(output.directories, ['01-hier-phase'], 'canonical phases root should win in mixed layout');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -355,6 +369,66 @@ objective: Manual review needed
 
     const output = JSON.parse(result.output);
     assert.strictEqual(output.error, 'Phase not found', 'should report phase not found');
+  });
+
+  test('reads canonical hierarchical plan files in mixed layout', () => {
+    const canonicalPhases = path.join(tmpDir, '.planning', 'workspace', 'current', 'phases');
+    fs.mkdirSync(canonicalPhases, { recursive: true });
+
+    const flatPhaseDir = path.join(tmpDir, '.planning', 'phases', '03-api');
+    fs.mkdirSync(flatPhaseDir, { recursive: true });
+    fs.writeFileSync(path.join(flatPhaseDir, '03-01-PLAN.md'), `---\nwave: 9\n---\n## Task 1`);
+
+    const canonicalPhaseDir = path.join(canonicalPhases, '03-api');
+    fs.mkdirSync(canonicalPhaseDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(canonicalPhaseDir, '03-01-PLAN.md'),
+      `---\nwave: 2\nautonomous: true\n---\n\n<tasks>\n<task type="auto"><name>T1</name></task>\n</tasks>`
+    );
+
+    const result = runGsdTools('phase-plan-index 03', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const output = JSON.parse(result.output);
+    assert.strictEqual(output.plans.length, 1, 'should index one canonical plan');
+    assert.strictEqual(output.plans[0].wave, 2, 'wave should come from canonical plan file');
+    assert.strictEqual(output.plans[0].task_count, 1, 'task count should come from canonical plan content');
+  });
+});
+
+describe('find-phase resolver compatibility', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTempProject();
+  });
+
+  afterEach(() => {
+    cleanup(tmpDir);
+  });
+
+  test('find-phase returns canonical hierarchical directory when both layouts exist', () => {
+    const canonicalPhases = path.join(tmpDir, '.planning', 'workspace', 'current', 'phases');
+    fs.mkdirSync(canonicalPhases, { recursive: true });
+
+    const flatPhaseDir = path.join(tmpDir, '.planning', 'phases', '01-flat-name');
+    fs.mkdirSync(flatPhaseDir, { recursive: true });
+    fs.writeFileSync(path.join(flatPhaseDir, '01-01-PLAN.md'), '# Plan');
+
+    const canonicalPhaseDir = path.join(canonicalPhases, '01-hier-name');
+    fs.mkdirSync(canonicalPhaseDir, { recursive: true });
+    fs.writeFileSync(path.join(canonicalPhaseDir, '01-01-PLAN.md'), '# Plan');
+
+    const result = runGsdTools('find-phase 01', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const output = JSON.parse(result.output);
+    assert.strictEqual(output.found, true, 'phase should be found');
+    assert.strictEqual(
+      output.directory,
+      '.planning/workspace/current/phases/01-hier-name',
+      'find-phase should resolve to canonical root in mixed layout'
+    );
   });
 });
 
@@ -1859,4 +1933,3 @@ describe('phase complete milestone-scoped next-phase', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // milestone complete command
 // ─────────────────────────────────────────────────────────────────────────────
-
