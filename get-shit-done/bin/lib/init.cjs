@@ -241,6 +241,9 @@ function cmdInitPlanPhase(cwd, phase, raw) {
 
 function cmdInitNewProject(cwd, raw) {
   const config = loadConfig(cwd);
+  const bootstrap = bootstrapHierarchicalWorkspace(cwd);
+  const artifacts = getResolvedArtifacts(cwd);
+  const layoutMetadata = getLayoutMetadata(cwd);
 
   // Detect Brave Search API key availability
   const homedir = require('os').homedir();
@@ -319,7 +322,7 @@ function cmdInitNewProject(cwd, raw) {
     commit_docs: config.commit_docs,
 
     // Existing state
-    project_exists: pathExistsInternal(cwd, '.planning/PROJECT.md'),
+    project_exists: artifacts.project.exists,
     has_codebase_map: pathExistsInternal(cwd, '.planning/codebase'),
     planning_exists: pathExistsInternal(cwd, '.planning'),
 
@@ -338,7 +341,10 @@ function cmdInitNewProject(cwd, raw) {
     exa_search_available: hasExaSearch,
 
     // File paths
-    project_path: '.planning/PROJECT.md',
+    project_path: artifacts.project.relativePath,
+    hierarchical_bootstrap_enabled: bootstrap.enabled,
+    hierarchical_bootstrap_created: bootstrap.created,
+    ...layoutMetadata,
   };
 
   output(withProjectRoot(cwd, result), raw);
@@ -346,6 +352,9 @@ function cmdInitNewProject(cwd, raw) {
 
 function cmdInitNewMilestone(cwd, raw) {
   const config = loadConfig(cwd);
+  const bootstrap = bootstrapHierarchicalWorkspace(cwd);
+  const artifacts = getResolvedArtifacts(cwd);
+  const layoutMetadata = getLayoutMetadata(cwd);
   const milestone = getMilestoneInfo(cwd);
   const latestCompleted = getLatestCompletedMilestone(cwd);
   const phasesDir = path.join(planningDir(cwd), 'phases');
@@ -533,6 +542,8 @@ function cmdInitVerifyWork(cwd, phase, raw) {
 
 function cmdInitPhaseOp(cwd, phase, raw) {
   const config = loadConfig(cwd);
+  const artifacts = getResolvedArtifacts(cwd);
+  const layoutMetadata = getLayoutMetadata(cwd);
   let phaseInfo = findPhaseInternal(cwd, phase);
 
   // If the only disk match comes from an archived milestone, prefer the
@@ -1045,6 +1056,8 @@ function cmdInitManager(cwd, raw) {
 
 function cmdInitProgress(cwd, raw) {
   const config = loadConfig(cwd);
+  const artifacts = getResolvedArtifacts(cwd);
+  const layoutMetadata = getLayoutMetadata(cwd);
   const milestone = getMilestoneInfo(cwd);
 
   // Analyze phases — filter to current milestone and include ROADMAP-only phases
