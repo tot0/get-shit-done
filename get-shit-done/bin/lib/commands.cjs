@@ -8,6 +8,37 @@ const { safeReadFile, loadConfig, isGitIgnored, execGit, normalizePhaseName, com
 const { extractFrontmatter } = require('./frontmatter.cjs');
 const { MODEL_PROFILES } = require('./model-profiles.cjs');
 
+function getMilestoneInfoFromResolvedRoadmap(cwd, roadmapRelativePath) {
+  const roadmapFile = path.join(cwd, roadmapRelativePath);
+  try {
+    const roadmap = fs.readFileSync(roadmapFile, 'utf-8');
+    const inProgressMatch = roadmap.match(/🚧\s*\*\*v(\d+\.\d+)\s+([^*]+)\*\*/);
+    if (inProgressMatch) {
+      return {
+        version: 'v' + inProgressMatch[1],
+        name: inProgressMatch[2].trim(),
+      };
+    }
+
+    const cleaned = roadmap.replace(/<details>[\s\S]*?<\/details>/gi, '');
+    const headingMatch = cleaned.match(/## .*v(\d+\.\d+)[:\s]+([^\n(]+)/);
+    if (headingMatch) {
+      return {
+        version: 'v' + headingMatch[1],
+        name: headingMatch[2].trim(),
+      };
+    }
+
+    const versionMatch = cleaned.match(/v(\d+\.\d+)/);
+    return {
+      version: versionMatch ? versionMatch[0] : 'v1.0',
+      name: 'milestone',
+    };
+  } catch {
+    return getMilestoneInfo(cwd);
+  }
+}
+
 function cmdGenerateSlug(text, raw) {
   if (!text) {
     error('text required for slug generation');
