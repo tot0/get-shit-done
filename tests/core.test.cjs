@@ -27,6 +27,8 @@ const {
   getMilestonePhaseFilter,
   getRoadmapPhaseInternal,
   searchPhaseInDir,
+  resolveLayout,
+  resolveArtifactPath,
   findPhaseInternal,
   findProjectRoot,
   detectSubRepos,
@@ -645,6 +647,153 @@ describe('findPhaseInternal', () => {
     const result = findPhaseInternal(tmpDir, '1');
     assert.strictEqual(result.found, true);
     assert.strictEqual(result.archived, 'v1.0');
+  });
+
+  test('prefers canonical hierarchical phase root when both layouts exist', () => {
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'phases', '01-flat-only'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'workspace', 'current', 'phases', '01-hierarchical-win'), { recursive: true });
+
+    const result = findPhaseInternal(tmpDir, '1');
+    assert.strictEqual(result.found, true);
+    assert.strictEqual(result.phase_name, 'hierarchical-win');
+    assert.strictEqual(result.directory, '.planning/workspace/current/phases/01-hierarchical-win');
+  });
+});
+
+// ─── layout resolver ────────────────────────────────────────────────────────────
+
+describe('layout resolver', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-core-test-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('classifies missing .planning as none with full confidence', () => {
+    const result = resolveLayout(tmpDir);
+    assert.strictEqual(result.mode, 'none');
+    assert.strictEqual(result.confidence, 1);
+    assert.deepStrictEqual(result.signals.hierarchicalHits, []);
+    assert.deepStrictEqual(result.signals.flatHits, []);
+    assert.deepStrictEqual(result.signals.conflicts, []);
+  });
+
+  test('classifies flat-only layout with flat signals', () => {
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'phases'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'ROADMAP.md'), '# roadmap');
+
+    const result = resolveLayout(tmpDir);
+    assert.strictEqual(result.mode, 'flat');
+    assert.ok(result.confidence > 0.5);
+    assert.ok(result.signals.flatHits.includes('.planning/phases'));
+    assert.ok(result.signals.flatHits.includes('.planning/ROADMAP.md'));
+    assert.strictEqual(result.signals.hierarchicalHits.length, 0);
+  });
+
+  test('classifies hierarchical-only layout with hierarchical signals', () => {
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'workspace', 'current', 'phases'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'project'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'archive', 'milestones'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'todos'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'workspace', 'current', 'ROADMAP.md'), '# roadmap');
+
+    const result = resolveLayout(tmpDir);
+    assert.strictEqual(result.mode, 'hierarchical');
+    assert.ok(result.confidence > 0.5);
+    assert.ok(result.signals.hierarchicalHits.includes('.planning/workspace/current/phases'));
+    assert.ok(result.signals.hierarchicalHits.includes('.planning/archive/milestones'));
+    assert.strictEqual(result.signals.flatHits.length, 0);
+  });
+
+  test('classifies mixed layout as ambiguous with conflict signals', () => {
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'workspace', 'current'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'workspace', 'current', 'ROADMAP.md'), '# hierarchical roadmap');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'ROADMAP.md'), '# flat roadmap');
+
+    const result = resolveLayout(tmpDir);
+    assert.strictEqual(result.mode, 'ambiguous');
+    assert.ok(result.signals.hierarchicalHits.includes('.planning/workspace/current/ROADMAP.md'));
+    assert.ok(result.signals.flatHits.includes('.planning/ROADMAP.md'));
+    assert.ok(result.signals.conflicts.some(c => c.artifact === 'roadmapFile'));
+  });
+
+  test('resolveArtifactPath prefers canonical paths deterministically in conflicts', () => {
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'archive', 'milestones'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'milestones'), { recursive: true });
+
+    const result = resolveArtifactPath(tmpDir, 'archiveMilestonesDir');
+    assert.strictEqual(result.relativePath, '.planning/archive/milestones');
+    assert.strictEqual(result.source, 'hierarchical');
+    assert.strictEqual(result.fallbackUsed, false);
+    assert.strictEqual(result.conflict, true);
+  });
+
+  test('resolveArtifactPath falls back to legacy archive namespace when needed', () => {
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'milestones'), { recursive: true });
+
+    const result = resolveArtifactPath(tmpDir, 'archiveMilestonesDir');
+    assert.strictEqual(result.relativePath, '.planning/milestones');
+    assert.strictEqual(result.source, 'flat');
+    assert.strictEqual(result.fallbackUsed, true);
+    assert.strictEqual(result.conflict, false);
+  });
+
+  test('todos path stays stable across workspace/current changes', () => {
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'workspace', 'current', 'phases'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'todos'), { recursive: true });
+
+    const first = resolveArtifactPath(tmpDir, 'todosDir');
+    assert.strictEqual(first.relativePath, '.planning/todos');
+    assert.strictEqual(first.fallbackUsed, false);
+
+    fs.rmSync(path.join(tmpDir, '.planning', 'workspace', 'current'), { recursive: true, force: true });
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'phases'), { recursive: true });
+
+    const second = resolveArtifactPath(tmpDir, 'todosDir');
+    assert.strictEqual(second.relativePath, '.planning/todos');
+    assert.strictEqual(second.fallbackUsed, false);
+  });
+});
+
+// ─── getArchivedPhaseDirs ──────────────────────────────────────────────────────
+
+describe('getArchivedPhaseDirs', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-core-test-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('uses canonical archive root first and flags drift conflicts', () => {
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'archive', 'milestones', 'v2.0-phases', '04-layout'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'milestones', 'v9.9-phases', '99-legacy-only'), { recursive: true });
+
+    const dirs = getArchivedPhaseDirs(tmpDir);
+    assert.strictEqual(dirs.length, 1);
+    assert.strictEqual(dirs[0].milestone, 'v2.0');
+    assert.strictEqual(dirs[0].basePath, '.planning/archive/milestones/v2.0-phases');
+    assert.strictEqual(dirs[0].archive_source, 'hierarchical');
+    assert.strictEqual(dirs[0].archive_conflict, true);
+  });
+
+  test('falls back to legacy archive root when canonical is missing', () => {
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'milestones', 'v1.0-phases', '01-foundation'), { recursive: true });
+
+    const dirs = getArchivedPhaseDirs(tmpDir);
+    assert.strictEqual(dirs.length, 1);
+    assert.strictEqual(dirs[0].basePath, '.planning/milestones/v1.0-phases');
+    assert.strictEqual(dirs[0].archive_source, 'flat');
+    assert.strictEqual(dirs[0].archive_fallback_used, true);
+    assert.strictEqual(dirs[0].archive_conflict, false);
   });
 });
 
