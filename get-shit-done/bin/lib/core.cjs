@@ -1209,6 +1209,8 @@ module.exports = {
   normalizePhaseName,
   comparePhaseNum,
   searchPhaseInDir,
+  resolveLayout,
+  resolveArtifactPath,
   findPhaseInternal,
   getArchivedPhaseDirs,
   getRoadmapPhaseInternal,
