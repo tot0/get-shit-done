@@ -733,12 +733,12 @@ function findPhaseInternal(cwd, phase) {
   const current = searchPhaseInDir(phasesDir, relPhasesDir, normalized);
   if (current) return current;
 
-  // Search archived milestone phases (newest first)
-  const milestonesDir = path.join(cwd, '.planning', 'milestones');
-  if (!fs.existsSync(milestonesDir)) return null;
+  // Search archived milestone phases (newest first), canonical path first with legacy fallback
+  const archiveRoot = resolveArtifactPath(cwd, 'archiveMilestonesDir');
+  if (!fs.existsSync(archiveRoot.path)) return null;
 
   try {
-    const milestoneEntries = fs.readdirSync(milestonesDir, { withFileTypes: true });
+    const milestoneEntries = fs.readdirSync(archiveRoot.path, { withFileTypes: true });
     const archiveDirs = milestoneEntries
       .filter(e => e.isDirectory() && /^v[\d.]+-phases$/.test(e.name))
       .map(e => e.name)
@@ -747,11 +747,14 @@ function findPhaseInternal(cwd, phase) {
 
     for (const archiveName of archiveDirs) {
       const version = archiveName.match(/^(v[\d.]+)-phases$/)[1];
-      const archivePath = path.join(milestonesDir, archiveName);
-      const relBase = '.planning/milestones/' + archiveName;
+      const archivePath = path.join(archiveRoot.path, archiveName);
+      const relBase = toPosixPath(path.join(archiveRoot.relativePath, archiveName));
       const result = searchPhaseInDir(archivePath, relBase, normalized);
       if (result) {
         result.archived = version;
+        result.archive_source = archiveRoot.source;
+        result.archive_fallback_used = archiveRoot.fallbackUsed;
+        result.archive_conflict = archiveRoot.conflict;
         return result;
       }
     }
@@ -761,13 +764,13 @@ function findPhaseInternal(cwd, phase) {
 }
 
 function getArchivedPhaseDirs(cwd) {
-  const milestonesDir = path.join(cwd, '.planning', 'milestones');
+  const archiveRoot = resolveArtifactPath(cwd, 'archiveMilestonesDir');
   const results = [];
 
-  if (!fs.existsSync(milestonesDir)) return results;
+  if (!fs.existsSync(archiveRoot.path)) return results;
 
   try {
-    const milestoneEntries = fs.readdirSync(milestonesDir, { withFileTypes: true });
+    const milestoneEntries = fs.readdirSync(archiveRoot.path, { withFileTypes: true });
     // Find v*-phases directories, sort newest first
     const phaseDirs = milestoneEntries
       .filter(e => e.isDirectory() && /^v[\d.]+-phases$/.test(e.name))
@@ -781,11 +784,15 @@ function getArchivedPhaseDirs(cwd) {
       const dirs = readSubdirectories(archivePath, true);
 
       for (const dir of dirs) {
+        const basePath = toPosixPath(path.join(archiveRoot.relativePath, archiveName));
         results.push({
           name: dir,
           milestone: version,
-          basePath: path.join('.planning', 'milestones', archiveName),
+          basePath,
           fullPath: path.join(archivePath, dir),
+          archive_source: archiveRoot.source,
+          archive_fallback_used: archiveRoot.fallbackUsed,
+          archive_conflict: archiveRoot.conflict,
         });
       }
     }
