@@ -199,7 +199,19 @@ function cmdFindPhase(cwd, phase, raw) {
     output(result, raw, result.directory);
   } catch {
     output(notFound, raw, '');
+    return;
   }
+
+  const result = {
+    found: true,
+    directory: phaseInfo.directory,
+    phase_number: phaseInfo.phase_number,
+    phase_name: phaseInfo.phase_name,
+    plans: phaseInfo.plans,
+    summaries: phaseInfo.summaries,
+  };
+
+  output(result, raw, result.directory);
 }
 
 function extractObjective(content) {
@@ -215,20 +227,8 @@ function cmdPhasePlanIndex(cwd, phase, raw) {
   const phasesDir = path.join(planningDir(cwd), 'phases');
   const normalized = normalizePhaseName(phase);
 
-  // Find phase directory
-  let phaseDir = null;
-  let phaseDirName = null;
-  try {
-    const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
-    const dirs = entries.filter(e => e.isDirectory()).map(e => e.name).sort((a, b) => comparePhaseNum(a, b));
-    const match = dirs.find(d => d.startsWith(normalized));
-    if (match) {
-      phaseDir = path.join(phasesDir, match);
-      phaseDirName = match;
-    }
-  } catch {
-    // phases dir doesn't exist
-  }
+  const phaseInfo = findPhaseInternal(cwd, phase);
+  const phaseDir = phaseInfo ? path.join(cwd, phaseInfo.directory) : null;
 
   if (!phaseDir) {
     output({ phase: normalized, error: 'Phase not found', plans: [], waves: {}, incomplete: [], has_checkpoints: false }, raw);
