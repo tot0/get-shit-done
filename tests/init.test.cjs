@@ -31,6 +31,9 @@ describe('init commands', () => {
     assert.strictEqual(output.state_path, '.planning/STATE.md');
     assert.strictEqual(output.roadmap_path, '.planning/ROADMAP.md');
     assert.strictEqual(output.config_path, '.planning/config.json');
+    assert.ok('layout_mode' in output, 'layout_mode should be additive metadata');
+    assert.ok('layout_confidence' in output, 'layout_confidence should be additive metadata');
+    assert.ok(Array.isArray(output.layout_conflicts), 'layout_conflicts should be an array');
   });
 
   test('init plan-phase returns file paths', () => {
@@ -84,6 +87,71 @@ describe('init commands', () => {
     assert.strictEqual(output.roadmap_path, '.planning/ROADMAP.md');
     assert.strictEqual(output.project_path, '.planning/PROJECT.md');
     assert.strictEqual(output.config_path, '.planning/config.json');
+    assert.ok('layout_mode' in output, 'layout_mode should be additive metadata');
+    assert.ok('layout_confidence' in output, 'layout_confidence should be additive metadata');
+    assert.ok(Array.isArray(output.layout_conflicts), 'layout_conflicts should be an array');
+  });
+
+  test('init new-project bootstraps hierarchical directories idempotently', () => {
+    fs.rmSync(path.join(tmpDir, '.planning', 'phases'), { recursive: true, force: true });
+
+    const first = runGsdTools('init new-project', tmpDir);
+    assert.ok(first.success, `Command failed: ${first.error}`);
+    const firstOutput = JSON.parse(first.output);
+
+    assert.strictEqual(firstOutput.hierarchical_bootstrap_enabled, true);
+    assert.ok(fs.existsSync(path.join(tmpDir, '.planning', 'project')), 'project dir should exist');
+    assert.ok(fs.existsSync(path.join(tmpDir, '.planning', 'workspace', 'current')), 'workspace/current dir should exist');
+    assert.ok(fs.existsSync(path.join(tmpDir, '.planning', 'archive', 'milestones')), 'archive/milestones dir should exist');
+    assert.ok(fs.existsSync(path.join(tmpDir, '.planning', 'todos')), 'todos dir should exist');
+
+    const second = runGsdTools('init new-project', tmpDir);
+    assert.ok(second.success, `Command failed: ${second.error}`);
+    const secondOutput = JSON.parse(second.output);
+    assert.deepStrictEqual(secondOutput.hierarchical_bootstrap_created, [], 'second run should not create additional dirs');
+  });
+
+  test('init execute-phase resolves hierarchical paths with legacy key names', () => {
+    fs.rmSync(path.join(tmpDir, '.planning', 'phases'), { recursive: true, force: true });
+    const hierarchicalPhaseDir = path.join(tmpDir, '.planning', 'workspace', 'current', 'phases', '03-api');
+    fs.mkdirSync(hierarchicalPhaseDir, { recursive: true });
+    fs.writeFileSync(path.join(hierarchicalPhaseDir, '03-01-PLAN.md'), '# Plan');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'workspace', 'current', 'STATE.md'), '# State');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'workspace', 'current', 'ROADMAP.md'), '# Roadmap');
+
+    const result = runGsdTools('init execute-phase 03', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+    const output = JSON.parse(result.output);
+
+    assert.strictEqual(output.state_path, '.planning/workspace/current/STATE.md');
+    assert.strictEqual(output.roadmap_path, '.planning/workspace/current/ROADMAP.md');
+    assert.strictEqual(output.phase_dir, '.planning/workspace/current/phases/03-api');
+    assert.strictEqual(output.layout_mode, 'hierarchical');
+  });
+
+  test('init progress signals conflicts in mixed layout while preferring hierarchical paths', () => {
+    const flatPhaseDir = path.join(tmpDir, '.planning', 'phases', '03-api');
+    fs.mkdirSync(flatPhaseDir, { recursive: true });
+    fs.writeFileSync(path.join(flatPhaseDir, '03-01-PLAN.md'), '# Flat plan');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), '# Flat state');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'ROADMAP.md'), '# Flat roadmap');
+
+    const canonicalPhaseDir = path.join(tmpDir, '.planning', 'workspace', 'current', 'phases', '03-api');
+    fs.mkdirSync(canonicalPhaseDir, { recursive: true });
+    fs.writeFileSync(path.join(canonicalPhaseDir, '03-01-PLAN.md'), '# Canonical plan');
+    fs.writeFileSync(path.join(canonicalPhaseDir, '03-01-SUMMARY.md'), '# Canonical done');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'workspace', 'current', 'STATE.md'), '# Canonical state');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'workspace', 'current', 'ROADMAP.md'), '# Canonical roadmap');
+
+    const result = runGsdTools('init progress', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+    const output = JSON.parse(result.output);
+
+    assert.strictEqual(output.state_path, '.planning/workspace/current/STATE.md');
+    assert.strictEqual(output.roadmap_path, '.planning/workspace/current/ROADMAP.md');
+    assert.strictEqual(output.layout_mode, 'ambiguous');
+    assert.ok(output.layout_conflicts.length > 0, 'mixed layout should report conflicts');
+    assert.strictEqual(output.phases[0].summary_count, 1, 'phase inventory should come from hierarchical root');
   });
 
   test('init phase-op returns core and optional phase file paths', () => {
@@ -441,6 +509,27 @@ describe('cmdInitTodos', () => {
     const output = JSON.parse(result.output);
     assert.strictEqual(output.todo_count, 1);
     assert.strictEqual(output.todos[0].file, 'task.md');
+  });
+
+  test('todos stay anchored at .planning/todos across workspace phase changes', () => {
+    const pendingDir = path.join(tmpDir, '.planning', 'todos', 'pending');
+    fs.mkdirSync(pendingDir, { recursive: true });
+    fs.writeFileSync(path.join(pendingDir, 'cross-milestone.md'), 'title: Cross milestone\narea: planning\ncreated: 2026-03-01');
+
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'workspace', 'current', 'phases', '04-first'), { recursive: true });
+    const first = runGsdTools('init todos', tmpDir);
+    assert.ok(first.success, `Command failed: ${first.error}`);
+    const firstOutput = JSON.parse(first.output);
+    assert.strictEqual(firstOutput.pending_dir, '.planning/todos/pending');
+    assert.strictEqual(firstOutput.todos[0].path, '.planning/todos/pending/cross-milestone.md');
+
+    fs.rmSync(path.join(tmpDir, '.planning', 'workspace', 'current', 'phases'), { recursive: true, force: true });
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'workspace', 'current', 'phases', '05-second'), { recursive: true });
+    const second = runGsdTools('init todos', tmpDir);
+    assert.ok(second.success, `Command failed: ${second.error}`);
+    const secondOutput = JSON.parse(second.output);
+    assert.strictEqual(secondOutput.pending_dir, '.planning/todos/pending');
+    assert.strictEqual(secondOutput.todos[0].path, '.planning/todos/pending/cross-milestone.md');
   });
 });
 

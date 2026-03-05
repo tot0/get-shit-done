@@ -541,6 +541,46 @@ describe('progress command', () => {
     const output = JSON.parse(jsonResult.output);
     assert.ok(output.percent <= 100, `percent should be <= 100 but got ${output.percent}`);
   });
+
+  test('reads progress inventory from hierarchical phase root', () => {
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'workspace', 'current', 'phases', '01-foundation'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'workspace', 'current', 'phases', '01-foundation', '01-01-PLAN.md'), '# Plan');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'workspace', 'current', 'phases', '01-foundation', '01-01-SUMMARY.md'), '# Summary');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'workspace', 'current', 'ROADMAP.md'), '# Roadmap v2.0 Hierarchical\n');
+
+    const result = runGsdTools('progress json', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const output = JSON.parse(result.output);
+    assert.strictEqual(output.total_plans, 1, 'should read plans from hierarchical root');
+    assert.strictEqual(output.total_summaries, 1, 'should read summaries from hierarchical root');
+    assert.strictEqual(output.percent, 100, 'hierarchical progress should compute correctly');
+    assert.strictEqual(output.milestone_version, 'v2.0', 'milestone should come from hierarchical roadmap');
+  });
+
+  test('mixed layout prefers hierarchical phase root deterministically', () => {
+    // Flat root has more plans but should be ignored when canonical exists.
+    const flat = path.join(tmpDir, '.planning', 'phases', '01-foundation');
+    fs.mkdirSync(flat, { recursive: true });
+    fs.writeFileSync(path.join(flat, '01-01-PLAN.md'), '# Flat Plan 1');
+    fs.writeFileSync(path.join(flat, '01-02-PLAN.md'), '# Flat Plan 2');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'ROADMAP.md'), '# Roadmap v1.0 Flat\n');
+
+    const hierarchical = path.join(tmpDir, '.planning', 'workspace', 'current', 'phases', '01-foundation');
+    fs.mkdirSync(hierarchical, { recursive: true });
+    fs.writeFileSync(path.join(hierarchical, '01-01-PLAN.md'), '# Canonical Plan');
+    fs.writeFileSync(path.join(hierarchical, '01-01-SUMMARY.md'), '# Canonical Summary');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'workspace', 'current', 'ROADMAP.md'), '# Roadmap v3.0 Canonical\n');
+
+    const result = runGsdTools('progress json', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const output = JSON.parse(result.output);
+    assert.strictEqual(output.total_plans, 1, 'should prefer canonical root over flat fallback');
+    assert.strictEqual(output.total_summaries, 1, 'should prefer canonical summaries over flat fallback');
+    assert.strictEqual(output.percent, 100, 'canonical counts should drive percent');
+    assert.strictEqual(output.milestone_version, 'v3.0', 'canonical roadmap should win in mixed layout');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
