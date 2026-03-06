@@ -9,7 +9,7 @@
 **Total Plans in Phase:** 3
 **Status:** Phase complete — ready for verification
 **Progress:** [██████████] 100%
-**Last Activity:** 2026-03-05
+**Last Activity:** 2026-03-06
 **Last Activity Description:** Executed 04-01 resolver-first core plan
 
 ## Project Reference
@@ -30,6 +30,7 @@ See: `.planning/PROJECT.md` (updated 2026-02-15)
 | Phase 04 P01 | 1 min | 3 tasks | 2 files |
 | Phase 04 P03 | 2 min | 3 tasks | 4 files |
 | Phase 04 P02 | 2 min | 3 tasks | 4 files |
+| Phase 04 P04 | 1 min | 2 tasks | 2 files |
 
 ## Decisions
 
@@ -41,6 +42,8 @@ See: `.planning/PROJECT.md` (updated 2026-02-15)
 - [Phase 04]: Keep legacy init path and existence keys while adding resolver metadata
 - [Phase 04]: Bootstrap hierarchical directories only when layout is not flat
 - [Phase 04]: Prefer canonical hierarchical roots for mixed-layout progress totals
+- [Phase 04]: Fixed init phase-op fallback by importing getRoadmapPhaseInternal while preserving legacy output contracts
+- [Phase 04]: Strengthened cmdInitPhaseOp fallback regression coverage to assert legacy path keys plus layout metadata
 
 ## Blockers
 
@@ -48,6 +51,6 @@ None.
 
 ## Session
 
-**Last session:** 2026-03-05T04:53:15.819Z
-**Stopped At:** Completed 04-02-PLAN.md
+**Last session:** 2026-03-06T22:13:05.386Z
+**Stopped At:** Completed 04-04-PLAN.md
 **Resume File:** None
