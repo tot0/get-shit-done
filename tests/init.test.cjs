@@ -681,6 +681,12 @@ describe('cmdInitPhaseOp fallback', () => {
     assert.strictEqual(output.has_research, false);
     assert.strictEqual(output.has_context, false);
     assert.strictEqual(output.has_plans, false);
+    assert.strictEqual(output.state_path, '.planning/STATE.md');
+    assert.strictEqual(output.roadmap_path, '.planning/ROADMAP.md');
+    assert.strictEqual(output.requirements_path, '.planning/REQUIREMENTS.md');
+    assert.ok('layout_mode' in output, 'layout_mode should be additive metadata');
+    assert.ok('layout_confidence' in output, 'layout_confidence should be additive metadata');
+    assert.ok(Array.isArray(output.layout_conflicts), 'layout_conflicts should be an array');
   });
 
   test('prefers current milestone roadmap entry over archived phase with same number', () => {
