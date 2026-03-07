@@ -47,6 +47,15 @@ Plans:
 
 **Requirements:** MIGR-01, MIGR-03, WORK-01, WORK-03, DEC-01, DEC-02, DELTA-01, DELTA-02, CONT-01, CONT-02
 
+**Plans:** 5 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — Add idempotent migration command and flat-to-hierarchical mapping contract
+- [ ] 05-02-PLAN.md — Migrate CLI write-path internals to resolver-selected artifact roots
+- [ ] 05-03-PLAN.md — Update workflow prompts to use init/resolver path contracts
+- [ ] 05-04-PLAN.md — Add machine-parseable decisions/contracts primitives with verification hooks
+- [ ] 05-05-PLAN.md — Implement spec-delta generation/propagation and nested path filter defaults
+
 **Success Criteria:**
 1. User can run an idempotent migration command that maps flat artifacts into `project/` and `workspace/current/` while preserving todos
 2. Write-path workflows (discuss/plan/execute/verify/new-project/new-milestone/complete-milestone) use resolver-driven artifact paths
