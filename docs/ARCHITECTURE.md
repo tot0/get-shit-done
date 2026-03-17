@@ -358,7 +358,7 @@ Equivalent paths for other runtimes:
 
 ```
 .planning/
-├── PROJECT.md              # Project vision, constraints, decisions
+├── PROJECT.md              # Project vision, constraints, decisions, evolution rules
 ├── REQUIREMENTS.md         # Scoped requirements (v1/v2/out-of-scope)
 ├── ROADMAP.md              # Phase breakdown with status tracking
 ├── STATE.md                # Living memory: position, decisions, blockers, metrics

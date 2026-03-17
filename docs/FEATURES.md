@@ -70,7 +70,7 @@
 **Produces:**
 | Artifact | Description |
 |----------|-------------|
-| `PROJECT.md` | Project vision, constraints, technical decisions |
+| `PROJECT.md` | Project vision, constraints, technical decisions, evolution rules |
 | `REQUIREMENTS.md` | Scoped requirements with unique IDs (REQ-XX) |
 | `ROADMAP.md` | Phase breakdown with status tracking and requirement mapping |
 | `STATE.md` | Initial project state with position, decisions, metrics |
