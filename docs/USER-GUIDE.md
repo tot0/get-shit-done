@@ -820,33 +820,73 @@ If the installer crashes with `EPERM: operation not permitted, scandir` on Windo
 
 ## Project File Structure
 
-For reference, here is what GSD creates in your project:
+GSD supports a resolver-backed hierarchical layout with flat-layout compatibility.
+
+### Baseline hierarchy (v2)
 
 ```
 .planning/
-  PROJECT.md              # Project vision and context (always loaded)
-  REQUIREMENTS.md         # Scoped v1/v2 requirements with IDs
-  ROADMAP.md              # Phase breakdown with status tracking
-  STATE.md                # Decisions, blockers, session memory
-  config.json             # Workflow configuration
-  MILESTONES.md           # Completed milestone archive
-  HANDOFF.json            # Structured session handoff (from /gsd:pause-work)
-  research/               # Domain research from /gsd:new-project
-  reports/                # Session reports (from /gsd:session-report)
-  todos/
-    pending/              # Captured ideas awaiting work
-    done/                 # Completed todos
-  debug/                  # Active debug sessions
-    resolved/             # Archived debug sessions
-  codebase/               # Brownfield codebase mapping (from /gsd:map-codebase)
-  phases/
-    XX-phase-name/
-      XX-YY-PLAN.md       # Atomic execution plans
-      XX-YY-SUMMARY.md    # Execution outcomes and decisions
-      CONTEXT.md          # Your implementation preferences
-      RESEARCH.md         # Ecosystem research findings
-      VERIFICATION.md     # Post-execution verification results
-      XX-UI-SPEC.md       # UI design contract (from /gsd:ui-phase)
-      XX-UI-REVIEW.md     # Visual audit scores (from /gsd:ui-review)
-  ui-reviews/             # Screenshots from /gsd:ui-review (gitignored)
+  config.json                     # Workflow settings and toggles
+  project/                        # Persistent project memory (cross-milestone)
+    PROJECT.md                    # Product definition and long-lived context
+    DECISIONS.md                  # Decision queue (pending/decided/revisit)
+    contracts/                    # Shared interface contracts
+    MILESTONES.md                 # Completed milestone index
+    codebase/                     # Brownfield mapping artifacts
+  workspace/
+    current/                      # Active milestone working set
+      ROADMAP.md                  # Current milestone phase plan
+      REQUIREMENTS.md             # Current scoped requirement set
+      STATE.md                    # Active execution memory
+      HANDOFF.json                # Structured session handoff
+      reports/                    # Session reports
+      phases/
+        XX-phase-name/
+          XX-RESEARCH.md          # Phase research
+          XX-YY-PLAN.md           # Executable plans
+          XX-YY-SUMMARY.md        # Plan execution outcomes
+          XX-VERIFICATION.md      # Goal-backward verification report
+          XX-CONTEXT.md           # Locked phase decisions from discuss-phase
+          XX-UI-SPEC.md           # UI design contract
+          XX-UI-REVIEW.md         # Visual audit scores
+      research/                   # Milestone-level research artifacts
+      spec-deltas/                # Proposed spec updates from execution
+      ui-reviews/                 # Screenshots from UI audits (gitignored)
+  archive/
+    milestones/
+      <milestone-id>/
+        SUMMARY.md                # Archived milestone outcome
+        ROADMAP.md                # Snapshot at completion
+        REQUIREMENTS.md           # Snapshot at completion
+  todos/                          # Cross-milestone capture
+    pending/
+    done/
 ```
+
+### Artifact lifetime model
+
+- `project/` is persistent across milestones.
+- `workspace/current/` is reset for each new milestone.
+- `archive/milestones/` is historical record and should not be rewritten.
+- `todos/` survives milestone transitions.
+
+### Resolver contract (how workflows find files)
+
+Workflows should use resolver artifact keys instead of hardcoded paths:
+
+- `projectFile` -> `.planning/project/PROJECT.md` (fallback `.planning/PROJECT.md`)
+- `roadmapFile` -> `.planning/workspace/current/ROADMAP.md` (fallback `.planning/ROADMAP.md`)
+- `requirementsFile` -> `.planning/workspace/current/REQUIREMENTS.md` (fallback `.planning/REQUIREMENTS.md`)
+- `stateFile` -> `.planning/workspace/current/STATE.md` (fallback `.planning/STATE.md`)
+- `phasesDir` -> `.planning/workspace/current/phases` (fallback `.planning/phases`)
+- `archiveMilestonesDir` -> `.planning/archive/milestones` (fallback `.planning/milestones`)
+
+### Workflow ordering and file ownership
+
+1. `/gsd:new-project` initializes project-level context and initial workspace artifacts.
+2. `/gsd:new-milestone` refreshes `workspace/current/` and preserves `project/`.
+3. `/gsd:discuss-phase` writes phase context decisions (`*-CONTEXT.md`).
+4. `/gsd:plan-phase` creates research/plans with verification loop.
+5. `/gsd:execute-phase` consumes plan files and writes summaries.
+6. `/gsd:verify-work` validates outcomes and records verification artifacts.
+7. `/gsd:complete-milestone` archives workspace outputs and updates project milestone index.
