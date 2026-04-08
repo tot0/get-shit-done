@@ -170,11 +170,68 @@ const milestone = require('./lib/milestone.cjs');
 const commands = require('./lib/commands.cjs');
 const init = require('./lib/init.cjs');
 const frontmatter = require('./lib/frontmatter.cjs');
+const taste = require('./lib/taste.cjs');
 const profilePipeline = require('./lib/profile-pipeline.cjs');
 const profileOutput = require('./lib/profile-output.cjs');
 const workstream = require('./lib/workstream.cjs');
 const docs = require('./lib/docs.cjs');
 const learnings = require('./lib/learnings.cjs');
+
+// ─── Mistake Registry ────────────────────────────────────────────────────────
+
+function cmdInitMistakes(cwd, raw) {
+  const cfg = core.loadConfig(cwd);
+  const now = new Date();
+  const mistakesDir = path.join(cwd, '.planning', 'mistakes');
+  let count = 0;
+  const mistakes = [];
+  let maxId = 0;
+  try {
+    const files = fs.readdirSync(mistakesDir).filter(f => f.endsWith('.md'));
+    for (const file of files) {
+      try {
+        const content = fs.readFileSync(path.join(mistakesDir, file), 'utf-8');
+        const fm = frontmatter.extractFrontmatter(content);
+        const idMatch = (fm.id || '').match(/^MR-(\d+)$/);
+        const numericId = idMatch ? parseInt(idMatch[1], 10) : 0;
+        if (numericId > maxId) maxId = numericId;
+        count++;
+        mistakes.push({
+          file, id: fm.id || 'unknown', created: fm.created || 'unknown',
+          title: fm.title || 'Untitled', area: fm.area || 'general',
+          files: Array.isArray(fm.files) ? fm.files : [],
+          path: path.join('.planning', 'mistakes', file),
+        });
+      } catch {}
+    }
+  } catch {}
+  mistakes.sort((a, b) => {
+    if (a.created === 'unknown') return 1;
+    if (b.created === 'unknown') return -1;
+    return new Date(b.created) - new Date(a.created);
+  });
+  const nextNum = maxId + 1;
+  const nextId = 'MR-' + String(nextNum).padStart(3, '0');
+  core.output({ commit_docs: cfg.commit_docs, date: now.toISOString().split('T')[0],
+    timestamp: now.toISOString(), mistake_count: count, mistakes, next_id: nextId,
+    mistakes_dir: '.planning/mistakes',
+    mistakes_dir_exists: core.pathExistsInternal(cwd, '.planning/mistakes'),
+    planning_exists: core.pathExistsInternal(cwd, '.planning') }, raw);
+}
+
+function getUnprocessedDecisionLogs(decisionsDir) {
+  if (!fs.existsSync(decisionsDir)) return [];
+  const files = fs.readdirSync(decisionsDir);
+  const result = [];
+  for (const file of files) {
+    if (!file.endsWith('.md')) continue;
+    const filePath = path.join(decisionsDir, file);
+    if (!fs.statSync(filePath).isFile()) continue;
+    const content = fs.readFileSync(filePath, 'utf-8');
+    if (!content.includes('<!-- processed: yes -->')) result.push(filePath);
+  }
+  return result;
+}
 
 // ─── Arg parsing helpers ──────────────────────────────────────────────────────
 
@@ -604,6 +661,46 @@ async function runCommand(command, args, cwd, raw, defaultValue) {
       break;
     }
 
+    case 'load-active-tastes': {
+      const entries = taste.loadActiveTasteEntries(cwd);
+      core.output(entries, raw, `${entries.length} active taste entries`);
+      break;
+    }
+
+    case 'update-taste-counters': {
+      taste.updateTasteCounters(cwd, args[1] ? JSON.parse(args[1]) : {});
+      core.output({ updated: true }, raw, 'Taste counters updated');
+      break;
+    }
+
+    case 'unprocessed-logs': {
+      const decisionsDir = args[1] || path.join(cwd, '.planning/decisions/');
+      const logs = getUnprocessedDecisionLogs(decisionsDir);
+      if (raw) {
+        console.log(JSON.stringify({ unprocessed_logs: logs, count: logs.length }));
+      } else {
+        if (logs.length === 0) {
+          console.log('No unprocessed decision logs found.');
+        } else {
+          console.log(`Found ${logs.length} unprocessed decision log(s):`);
+          logs.forEach(log => console.log(`  - ${log}`));
+        }
+      }
+      break;
+    }
+
+    case 'researcher': {
+      const subcommand = args[1];
+      if (subcommand === 'scan') {
+        commands.cmdResearcherScan(raw);
+      } else if (subcommand === 'load') {
+        commands.cmdResearcherLoad(args[2], raw);
+      } else {
+        core.error('Unknown researcher subcommand. Available: scan, load');
+      }
+      break;
+    }
+
     case 'config-ensure-section': {
       config.cmdConfigEnsureSection(cwd, raw);
       break;
@@ -824,6 +921,9 @@ async function runCommand(command, args, cwd, raw, defaultValue) {
           break;
         case 'todos':
           init.cmdInitTodos(cwd, args[2], raw);
+          break;
+        case 'mistakes':
+          cmdInitMistakes(cwd, raw);
           break;
         case 'milestone-op':
           init.cmdInitMilestoneOp(cwd, raw);
